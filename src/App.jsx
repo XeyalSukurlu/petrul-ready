@@ -16,7 +16,6 @@ import MemoryBoard from "./components/MemoryBoard.jsx";
 import JourneyMap from "./components/JourneyMap.jsx";
 import DailyMicroRitualModal from "./components/DailyMicroRitualModal.jsx";
 
-
 import Hero from "./sections/Hero.jsx";
 import About from "./sections/About.jsx";
 import MindGameFlow from "./sections/MindGameFlow.jsx";
@@ -94,8 +93,10 @@ function loadOrInitOrder(n) {
 export default function App() {
   const [themeIdx, setThemeIdx] = useState(storage.get("petrul_theme_idx", 0));
   const [memeMode, setMemeMode] = useState(storage.get("petrul_meme_mode", false));
+
+  // ✅ Daily Micro Ritual modal state + trigger token
   const [dmrOpen, setDmrOpen] = useState(false);
-const [dmrToken, setDmrToken] = useState(0);
+  const [dmrToken, setDmrToken] = useState(0);
 
   // ✅ Modal open/close
   const [showQuestion, setShowQuestion] = useState(false);
@@ -173,23 +174,22 @@ const [dmrToken, setDmrToken] = useState(0);
             ))}
           </div>
 
-       <TopBar
-  themeName={theme.name}
-  onSwitchDesign={switchDesign}
-  memeMode={memeMode}
-  onToggleMeme={() => setMemeMode((v) => !v)}
-  rightSlot={<TopMusicPopover theme={theme} />}
-  onOpenDMR={() => setDmrOpen(true)}   // ✅ NEW
-/>
-          
+          <TopBar
+            themeName={theme.name}
+            onSwitchDesign={switchDesign}
+            memeMode={memeMode}
+            onToggleMeme={() => setMemeMode((v) => !v)}
+            rightSlot={<TopMusicPopover theme={theme} />}
+            onOpenDMR={() => setDmrOpen(true)} // ✅ NEW
+          />
 
           <PetrulCompanion anchor="middle" src="/assets/mascot2.png" forceShowNow={false} />
 
           {/* ✅ FLOW: Ritual → Question */}
           <BreathRitualOverlay
-  onComplete={handleBreathComplete}
-  manualToken={dmrToken}   // ✅ NEW
-/>
+            onComplete={handleBreathComplete}
+            manualToken={dmrToken} // ✅ NEW
+          />
 
           <QuestionOfDayModal
             open={showQuestion}
@@ -198,24 +198,23 @@ const [dmrToken, setDmrToken] = useState(0);
           />
 
           <DailyMicroRitualModal
-  open={dmrOpen}
-  onClose={() => setDmrOpen(false)}
-  onStart={() => {
-  setDmrOpen(false);
-  setTimeout(() => setDmrToken((n) => n + 1), 120);
-}}
-/>
+            open={dmrOpen}
+            onClose={() => setDmrOpen(false)}
+            onStart={() => {
+              setDmrOpen(false);
+              setTimeout(() => setDmrToken((n) => n + 1), 120);
+            }}
+          />
 
           <MemeModeOverlay enabled={memeMode} theme={theme} themeId={themeId} />
 
           <main className="main">
             <Hero />
             <MoodPulse />
-          <MemoryBoard />
-          <JourneyMap />
-        
+            <MemoryBoard />
+            <JourneyMap />
             <MindGameFlow theme={theme} />
-            <About/>
+            <About />
           </main>
 
           <Footer />

@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export default function TopBar({
-  themeName, // (istifadə olunmaya bilər, saxladım)
+  themeName,
   onSwitchDesign,
   memeMode,
   onToggleMeme,
   rightSlot,
-  onOpenDMR, // optional
+  onOpenDMR,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [portalEl, setPortalEl] = useState(null);
@@ -28,11 +28,8 @@ export default function TopBar({
     if (!id) return;
 
     const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      window.location.hash = href;
-    }
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    else window.location.hash = href;
   };
 
   const handleNav = (it, { closeMenu } = { closeMenu: false }) => {
@@ -41,7 +38,7 @@ export default function TopBar({
     if (closeMenu) setMenuOpen(false);
   };
 
-  // Portal container (overlay-i body-ə çıxarırıq ki hero altında qalmasın)
+  // Portal root
   useEffect(() => {
     if (typeof document === "undefined") return;
 
@@ -56,12 +53,11 @@ export default function TopBar({
     };
   }, []);
 
-  // Menu open olanda: body scroll lock + class
+  // Scroll lock
   useEffect(() => {
     if (typeof document === "undefined") return;
 
     const body = document.body;
-
     if (!menuOpen) {
       body.style.overflow = "";
       body.classList.remove("menu-open");
@@ -78,7 +74,7 @@ export default function TopBar({
     };
   }, [menuOpen]);
 
-  // ESC ilə bağla
+  // ESC close
   useEffect(() => {
     if (!menuOpen) return;
 
@@ -90,23 +86,19 @@ export default function TopBar({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
 
-  // Desktop-a keçəndə menu açıq qalmasın
+  // Desktop-a keçəndə bağla
   useEffect(() => {
     if (!menuOpen) return;
 
     const mq = window.matchMedia("(min-width: 901px)");
-    const onChange = (e) => {
-      if (e.matches) setMenuOpen(false);
-    };
+    const onChange = (e) => e.matches && setMenuOpen(false);
 
     mq.addEventListener?.("change", onChange);
     return () => mq.removeEventListener?.("change", onChange);
   }, [menuOpen]);
 
-  // Açılarkən close düyməsinə fokus (mobil UX + klik donma hissini azaldır)
   useEffect(() => {
-    if (!menuOpen) return;
-    closeBtnRef.current?.focus?.();
+    if (menuOpen) closeBtnRef.current?.focus?.();
   }, [menuOpen]);
 
   const openMenu = () => setMenuOpen(true);
@@ -116,22 +108,24 @@ export default function TopBar({
     menuOpen && portalEl
       ? createPortal(
           <>
-            {/* Backdrop: həmişə üst qat + klik keçir */}
+            {/* Backdrop */}
             <div
               className="mobileMenuBackdrop"
               role="presentation"
-              onMouseDown={closeMenu}
-              onTouchStart={closeMenu}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeMenu();
+              }}
               style={{
                 position: "fixed",
                 inset: 0,
-                zIndex: 9998,
-                background: "rgba(0,0,0,0.72)",
+                zIndex: 2147483646,
                 pointerEvents: "auto",
               }}
             />
 
-            {/* Sheet: həmişə üst qat */}
+            {/* Sheet */}
             <div
               className="mobileMenuSheet"
               role="dialog"
@@ -143,17 +137,20 @@ export default function TopBar({
                 right: 0,
                 height: "100vh",
                 width: "min(86vw, 360px)",
-                zIndex: 9999,
+                zIndex: 2147483647,
                 pointerEvents: "auto",
               }}
-              onMouseDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
             >
               <button
                 ref={closeBtnRef}
                 className="mobileMenuClose"
                 type="button"
-                onClick={closeMenu}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  closeMenu();
+                }}
                 aria-label="Close menu"
               >
                 ✕
@@ -165,7 +162,11 @@ export default function TopBar({
                     key={it.href}
                     type="button"
                     className="mobileMenuItem"
-                    onClick={() => handleNav(it, { closeMenu: true })}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleNav(it, { closeMenu: true });
+                    }}
                   >
                     {it.label}
                   </button>
@@ -192,7 +193,6 @@ export default function TopBar({
         </div>
       </div>
 
-      {/* Desktop nav */}
       <nav className="nav" aria-label="Primary">
         {items.map((it) => (
           <a
@@ -211,7 +211,6 @@ export default function TopBar({
       </nav>
 
       <div className="topbarRight">
-        {/* Mobile hamburger */}
         <button
           className="mobileMenuBtn"
           type="button"
@@ -246,7 +245,6 @@ export default function TopBar({
         {rightSlot}
       </div>
 
-      {/* Portal overlay */}
       {overlay}
     </header>
   );
