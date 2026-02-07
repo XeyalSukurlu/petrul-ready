@@ -4332,11 +4332,6 @@ body.menu-open .mobileMenuSheet{
   z-index: 2147483647 !important;
 }
 
-.bgArt{
-  background-image: var(--bg-url) !important;
-  background-position: center !important;
-  background-size: cover !important;
-  background-repeat: no-repeat !important;
-}
+
 
 
