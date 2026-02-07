@@ -9,6 +9,13 @@ export default function TopBar({
   onOpenDMR, // optional
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+  if (menuOpen) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "";
+  }
+}, [menuOpen]);
 
   const items = useMemo(
     () => [
