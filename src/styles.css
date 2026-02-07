@@ -1486,7 +1486,7 @@ button:hover, .btn:hover{
 
   --myst-text-grad: linear-gradient(90deg, var(--myst-accent-a), var(--myst-accent-c), var(--myst-accent-b));
 }
-root{
+#root{
   position: relative;
   z-index: 2;
 }
@@ -4315,7 +4315,10 @@ html{
 .mobileMenuItem:hover{
   background: rgba(255,255,255,0.10);
 
-  /* ===== Fix: mobile menu clicks blocked by mysticPlayerFixed ===== */
+  
+}
+
+/* ===== Fix: mobile menu clicks blocked by mysticPlayerFixed ===== */
 body.menu-open .mysticPlayerFixed{
   pointer-events: none !important;
   z-index: 1 !important;
@@ -4328,187 +4331,6 @@ body.menu-open .mobileMenuBackdrop{
 body.menu-open .mobileMenuSheet{
   z-index: 2147483647 !important;
 }
-}
 
-/* ===================================================== */
-/* 🚀 MOBILE PERFORMANCE + HAMBURGER FIX (SAFE OVERRIDE) */
-/* ===================================================== */
 
-@media (max-width: 900px) {
 
-  /* --------- 1) AĞIR EFFEKTİ KƏSKİN AZALT --------- */
-
-  .topbar,
-  .sectionInner,
-  .glass,
-  .modal,
-  .overlay,
-  .gamePanel,
-  .gameOver,
-  .card,
-  .panel,
-  .questionCard,
-  .petrulMsgCard,
-  .memeBubble,
-  .memeBubbleInner,
-  .mobileMenuSheet {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    filter: none !important;
-  }
-
-  /* --------- 2) BACKGROUND DONMASINI TAM ARADAN QALDIR --------- */
-
-  .bgArt {
-    background-attachment: scroll !important;
-    will-change: auto !important;
-  }
-
-  .bgArt::before,
-  .bgArt::after {
-    animation: none !important;
-    filter: none !important;
-    opacity: 0 !important; /* Mobil üçün ağır mist layer-lər tam söndürülür */
-  }
-
-  /* --------- 3) HAMBURGER BACKDROP (TÜND + STABİL) --------- */
-
-  .mobileMenuBackdrop {
-    position: fixed !important;
-    inset: 0 !important;
-    background: rgba(0, 0, 0, 0.85) !important; /* Çox tünd, peşəkar overlay */
-    z-index: 9998 !important;
-    pointer-events: auto !important;
-  }
-
-  /* --------- 4) HAMBURGER SHEET (DÜZGÜN QAT + SÜRƏTLİ) --------- */
-
-  .mobileMenuSheet {
-    position: fixed !important;
-    top: 0 !important;
-    right: 0 !important;
-    height: 100vh !important;
-    width: min(86vw, 360px) !important;
-    background: linear-gradient(180deg, #0b0b0b, #020202) !important;
-    z-index: 9999 !important;
-    pointer-events: auto !important;
-    box-shadow: 0 0 28px rgba(0,0,0,0.6) !important;
-  }
-
-  /* İç kontent donmasın */
-  .mobileMenuList {
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* --------- 5) HERO DONMASINI SÖNDÜR --------- */
-
-  #home .sectionInner::before,
-  #home .sectionInner::after {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  /* --------- 6) ÜMUMİ SÜRƏTLƏNDİRMƏ --------- */
-
-  * {
-    transform: translateZ(0); /* GPU stabilizasiyası */
-  }
-
-  body.menu-open {
-    overflow: hidden !important;
-  }
-}
-
-/* ===================================================== */
-/* ✅ MOBILE: Hamburger + Background + Performance (FINAL) */
-/* ===================================================== */
-@media (max-width: 900px) {
-
-  /* ---------- HAMBURGER: bütün köhnə sheet/backdrop qaydalarını override et ---------- */
-  .mobileMenuBackdrop{
-    position: fixed !important;
-    inset: 0 !important;
-    background: rgba(0,0,0,0.88) !important;   /* daha tünd */
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    z-index: 2147483646 !important;
-    pointer-events: auto !important;
-  }
-
-  .mobileMenuSheet{
-    position: fixed !important;
-    top: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    left: auto !important;              /* köhnə left/right 12px qaydalarını öldürür */
-    height: 100vh !important;
-    width: min(86vw, 360px) !important;
-    transform: none !important;         /* slideDown/translate kimi şeyləri sıfırlayır */
-    animation: none !important;         /* köhnə slideDown varsa, donmaya səbəb olur */
-    z-index: 2147483647 !important;
-    pointer-events: auto !important;
-
-    background: linear-gradient(180deg, #0b0b0b, #020202) !important;
-    border: 1px solid rgba(255,255,255,0.12) !important;
-    box-shadow: 0 0 28px rgba(0,0,0,0.65) !important;
-  }
-
-  .mobileMenuList{
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* ---------- MOBİL DONMA: ağır blur/filtrləri söndür ---------- */
-  .topbar,
-  .sectionInner,
-  .glass,
-  .modal,
-  .overlay,
-  .gamePanel,
-  .gameOver,
-  .card,
-  .panel,
-  .questionCard,
-  .petrulMsgCard,
-  .memeBubble,
-  .memeBubbleInner{
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    filter: none !important;
-  }
-
-  /* ---------- BACKGROUND: iOS fixed repaint problemini bypass ---------- */
-  .bgArt{
-    background-color: #000 !important;     /* şəkil gec yüklənsə də qara fallback */
-    background-position: center !important;
-    background-size: cover !important;
-    background-repeat: no-repeat !important;
-
-    /* fixed bg + böyük şəkil mobil üçün ağırdır */
-    position: absolute !important;
-    inset: 0 !important;
-  }
-
-  /* Mist / noise animasiyaları mobil üçün öldürülür */
-  .bgArt::before,
-  .bgArt::after{
-    animation: none !important;
-    filter: none !important;
-    opacity: 0 !important;
-  }
-
-  /* əlavə sürət üçün: ağır kölgələri azaldır */
-  .card,
-  .panel,
-  .questionCard,
-  .petrulMsgCard{
-    box-shadow: 0 10px 24px rgba(0,0,0,0.35) !important;
-  }
-
-  /* menyu açıq olanda scroll kilidi */
-  body.menu-open{
-    overflow: hidden !important;
-    touch-action: none;
-  }
-}
