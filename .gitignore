@@ -4,3 +4,9 @@
 ._DS_Store
 **/.DS_Store
 **/._DS_Store
+
+# macOS
+.DS_Store
+._DS_Store
+**/.DS_Store
+**/._DS_Store
