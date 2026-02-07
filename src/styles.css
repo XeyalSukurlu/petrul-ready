@@ -4314,4 +4314,18 @@ html{
 
 .mobileMenuItem:hover{
   background: rgba(255,255,255,0.10);
+
+  /* ===== Fix: mobile menu clicks blocked by mysticPlayerFixed ===== */
+body.menu-open .mysticPlayerFixed{
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+/* Ensure menu is always on top when open */
+body.menu-open .mobileMenuBackdrop{
+  z-index: 2147483646 !important;
+}
+body.menu-open .mobileMenuSheet{
+  z-index: 2147483647 !important;
+}
 }

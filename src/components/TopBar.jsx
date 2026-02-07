@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 export default function TopBar({
-  themeName,
+  themeName, // (istifadə olunmaya bilər, saxladım)
   onSwitchDesign,
   memeMode,
   onToggleMeme,
@@ -9,13 +9,6 @@ export default function TopBar({
   onOpenDMR, // optional
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  useEffect(() => {
-  if (menuOpen) {
-    document.body.style.overflow = "hidden";
-  } else {
-    document.body.style.overflow = "";
-  }
-}, [menuOpen]);
 
   const items = useMemo(
     () => [
@@ -27,35 +20,73 @@ export default function TopBar({
     []
   );
 
-  // Prevent background scroll when menu open (mobile UX)
+  const scrollTo = (href) => {
+    const id = href?.startsWith("#") ? href.slice(1) : "";
+    if (!id) return;
+
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      // fallback (əgər id yoxdur)
+      window.location.hash = href;
+    }
+  };
+
+  const handleNav = (it, { closeMenu } = { closeMenu: false }) => {
+    if (it?.isDMR) {
+      onOpenDMR?.();
+    }
+    scrollTo(it.href);
+    if (closeMenu) setMenuOpen(false);
+  };
+
+  // ✅ Menu open olanda:
+  // - body scroll lock
+  // - body.menu-open class əlavə et (sənin CSS fix-in işləsin)
   useEffect(() => {
-    if (!menuOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const body = document.body;
+
+    if (!menuOpen) {
+      body.style.overflow = "";
+      body.classList.remove("menu-open");
+      return;
+    }
+
+    const prevOverflow = body.style.overflow;
+    body.style.overflow = "hidden";
+    body.classList.add("menu-open");
+
     return () => {
-      document.body.style.overflow = prev;
+      body.style.overflow = prevOverflow;
+      body.classList.remove("menu-open");
     };
   }, [menuOpen]);
 
-  // Close on ESC
+  // ESC ilə bağla
   useEffect(() => {
     if (!menuOpen) return;
+
     const onKeyDown = (e) => {
       if (e.key === "Escape") setMenuOpen(false);
     };
+
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
 
-  const goTo = (href) => {
-    const id = href?.startsWith("#") ? href.slice(1) : "";
-    if (id) {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      else window.location.hash = href; // fallback
-    }
-    setMenuOpen(false);
-  };
+  // Ekran böyüyəndə (desktop-a keçəndə) menu açıq qalmasın
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const mq = window.matchMedia("(min-width: 901px)");
+    const onChange = (e) => {
+      if (e.matches) setMenuOpen(false);
+    };
+
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, [menuOpen]);
 
   return (
     <header className="topbar">
@@ -63,7 +94,6 @@ export default function TopBar({
         <span className="brandDot" />
         <div>
           <div className="brandTitle">PETRUL</div>
-
           <div className="logoSub">
             Mystic Community
             <span className="mcLogo">
@@ -73,23 +103,22 @@ export default function TopBar({
         </div>
       </div>
 
-      {/* Desktop nav */}
+      {/* Desktop nav (mövcud dizaynı pozmamaq üçün <a> saxlanıldı) */}
       <nav className="nav" aria-label="Primary">
-        <a href="#home">Home</a>
-        <a href="#about">About Us</a>
-        <a href="#game">Game</a>
-
-        <a
-          href="#dmr"
-          onClick={(e) => {
-            e.preventDefault();
-            onOpenDMR?.();
-          }}
-          title="Daily Micro Ritual"
-          aria-label="Daily Micro Ritual"
-        >
-          DMR
-        </a>
+        {items.map((it) => (
+          <a
+            key={it.href}
+            href={it.href}
+            onClick={(e) => {
+              e.preventDefault();
+              handleNav(it, { closeMenu: false });
+            }}
+            title={it.isDMR ? "Daily Micro Ritual" : undefined}
+            aria-label={it.isDMR ? "Daily Micro Ritual" : undefined}
+          >
+            {it.label}
+          </a>
+        ))}
       </nav>
 
       <div className="topbarRight">
@@ -105,7 +134,13 @@ export default function TopBar({
           ☰
         </button>
 
-        <button className="iconBtn" onClick={onSwitchDesign} title="Switch Design" aria-label="Switch Design">
+        <button
+          className="iconBtn"
+          onClick={onSwitchDesign}
+          title="Switch Design"
+          aria-label="Switch Design"
+          type="button"
+        >
           ✦
         </button>
 
@@ -114,6 +149,7 @@ export default function TopBar({
           onClick={onToggleMeme}
           title="Meme Mode"
           aria-label="Meme Mode"
+          type="button"
         >
           ☄
         </button>
@@ -121,7 +157,7 @@ export default function TopBar({
         {rightSlot}
       </div>
 
-      {/* Mobile menu portal-like overlay (simple + reliable) */}
+      {/* Mobile menu overlay */}
       {menuOpen && (
         <>
           <div
@@ -129,8 +165,18 @@ export default function TopBar({
             onClick={() => setMenuOpen(false)}
             role="presentation"
           />
-          <div className="mobileMenuSheet" role="dialog" aria-modal="true" aria-label="Menu">
-            <button className="mobileMenuClose" type="button" onClick={() => setMenuOpen(false)} aria-label="Close menu">
+          <div
+            className="mobileMenuSheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+          >
+            <button
+              className="mobileMenuClose"
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close menu"
+            >
               ✕
             </button>
 
@@ -140,10 +186,7 @@ export default function TopBar({
                   key={it.href}
                   type="button"
                   className="mobileMenuItem"
-                  onClick={() => {
-                    if (it.isDMR) onOpenDMR?.();
-                    goTo(it.href);
-                  }}
+                  onClick={() => handleNav(it, { closeMenu: true })}
                 >
                   {it.label}
                 </button>
