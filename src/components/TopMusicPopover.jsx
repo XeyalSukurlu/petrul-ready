@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 
@@ -26,6 +26,7 @@ export default function TopMusicPopover({ theme }) {
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
+
   const [vol, setVol] = useState(0.8);
 
   // idle | loading | ready | error
@@ -35,82 +36,76 @@ export default function TopMusicPopover({ theme }) {
   const [dur, setDur] = useState(0);
   const [pos, setPos] = useState(0);
 
-  const clamp01 = useCallback(
-    (n) => Math.max(0, Math.min(1, n)),
-    []
-  );
+  const clamp01 = (n) => Math.max(0, Math.min(1, n));
 
-  const formatTime = useCallback((s) => {
+  const formatTime = (s) => {
     const n = Math.max(0, Math.floor(s || 0));
     const m = Math.floor(n / 60);
     const ss = String(n % 60).padStart(2, "0");
     return `${m}:${ss}`;
+  };
+
+  const setAudioSrc = (i) => {
+    const a = audioRef.current;
+    if (!a) return;
+
+    setErr("");
+    setStatus("loading");
+    setDur(0);
+    setPos(0);
+
+    // Hard reset (helps Safari/Chrome caching edge cases)
+    try {
+      a.pause();
+      a.currentTime = 0;
+    } catch {}
+
+    a.src = tracks[i]?.src || "";
+    a.load();
+  };
+
+  // initial load
+  useEffect(() => {
+    setAudioSrc(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setAudioSrc = useCallback(
-    (i) => {
-      const a = audioRef.current;
-      if (!a) return;
-
-      setErr("");
-      setStatus("loading");
-      setDur(0);
-      setPos(0);
-
-      try {
-        a.pause();
-        a.currentTime = 0;
-      } catch {}
-
-      a.src = tracks[i]?.src || "";
-      a.load();
-    },
-    [tracks]
-  );
-
-  // ---- VOLUME SYNC ----
+  // volume sync
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
     a.volume = clamp01(vol);
-  }, [vol, clamp01]);
+  }, [vol]);
 
-  // ---- TRACK CHANGE (DEFERRED LOAD) ----
+  // when track changes
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
 
-    const desired = tracks[idx]?.src || "";
-    const alreadyLoaded = Boolean(a.currentSrc || a.src);
+    setAudioSrc(idx);
 
-    if (open || playing || alreadyLoaded) {
-      if (a.currentSrc !== desired && a.src !== desired) {
-        setAudioSrc(idx);
-      }
-
-      if (playing) {
-        a.play().catch(() => {
-          setStatus("error");
-          setErr("Playback blocked by browser. Click Play again.");
-          setPlaying(false);
-        });
-      }
+    if (playing) {
+      a.play().catch(() => {
+        setStatus("error");
+        setErr("Playback blocked by browser. Click Play again.");
+        setPlaying(false);
+      });
     }
-  }, [idx, open, playing, tracks, setAudioSrc]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx]);
 
-  // ---- AUDIO EVENTS + PROGRESS (OPTIMIZED RAF) ----
+  // audio events + progress loop
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
 
     const tick = () => {
-      if (!draggingSeekRef.current) {
-        setPos(a.currentTime || 0);
-      }
+      if (!draggingSeekRef.current) setPos(a.currentTime || 0);
       rafRef.current = requestAnimationFrame(tick);
     };
 
     const onLoadStart = () => setStatus("loading");
+
     const onLoadedMeta = () => setDur(a.duration || 0);
 
     const onCanPlay = () => {
@@ -158,31 +153,25 @@ export default function TopMusicPopover({ theme }) {
     };
   }, [tracks.length]);
 
-  // ---- ESC CLOSE ----
+  // close only on ESC
   useEffect(() => {
     if (!open) return;
-
-    const onKey = (e) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-
+    const onKey = (e) => e.key === "Escape" && setOpen(false);
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // ---- GLOBAL POINTERUP (DRAG END) ----
+  // global pointerup to stop drag
   useEffect(() => {
     const onUp = () => {
       draggingSeekRef.current = false;
       draggingVolRef.current = false;
     };
-
     window.addEventListener("pointerup", onUp);
     return () => window.removeEventListener("pointerup", onUp);
   }, []);
 
-  // ---- SAFE PLAY ----
-  const safePlay = useCallback(async () => {
+  const safePlay = async () => {
     const a = audioRef.current;
     if (!a) return;
 
@@ -195,55 +184,41 @@ export default function TopMusicPopover({ theme }) {
       setErr("Playback blocked by browser policy. Click Play again.");
       setPlaying(false);
     }
-  }, []);
+  };
 
-  const togglePlay = useCallback(
-    async (e) => {
-      e?.preventDefault?.();
-      e?.stopPropagation?.();
+  const togglePlay = async (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
 
-      const a = audioRef.current;
-      if (!a) return;
+    const a = audioRef.current;
+    if (!a) return;
 
-      if (status === "error") {
-        setAudioSrc(idx);
-      }
+    if (status === "error") {
+      setAudioSrc(idx);
+    }
 
-      const desired = tracks[idx]?.src || "";
-      if (!a.currentSrc && (!a.src || a.src !== desired)) {
-        setAudioSrc(idx);
-      }
+    if (!playing) {
+      await safePlay();
+    } else {
+      a.pause();
+    }
+  };
 
-      if (!playing) {
-        await safePlay();
-      } else {
-        a.pause();
-      }
-    },
-    [idx, playing, safePlay, setAudioSrc, status, tracks]
-  );
+  const next = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    setIdx((v) => (v + 1) % tracks.length);
+  };
 
-  const next = useCallback(
-    (e) => {
-      e?.preventDefault?.();
-      e?.stopPropagation?.();
-      setIdx((v) => (v + 1) % tracks.length);
-    },
-    [tracks.length]
-  );
-
-  const prev = useCallback(
-    (e) => {
-      e?.preventDefault?.();
-      e?.stopPropagation?.();
-      setIdx((v) => (v - 1 + tracks.length) % tracks.length);
-    },
-    [tracks.length]
-  );
+  const prev = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    setIdx((v) => (v - 1 + tracks.length) % tracks.length);
+  };
 
   const progress = dur > 0 ? clamp01(pos / dur) : 0;
 
-  const setSeekFromPointer = useCallback((e) => {
+  const setSeekFromPointer = (e) => {
     const a = audioRef.current;
     if (!a || !dur) return;
 
@@ -253,17 +228,17 @@ export default function TopMusicPopover({ theme }) {
 
     setPos(t);
     a.currentTime = t;
-  }, [dur, clamp01]);
+  };
 
-  const setVolFromPointer = useCallback((e) => {
+  const setVolFromPointer = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const p = clamp01((e.clientX - rect.left) / rect.width);
     setVol(p);
-  }, [clamp01]);
+  };
 
   return (
     <div className="topPlayer" onPointerDown={(e) => e.stopPropagation()}>
-      <audio ref={audioRef} preload="none" />
+      <audio ref={audioRef} preload="auto" />
 
       <button
         type="button"
@@ -295,6 +270,7 @@ export default function TopMusicPopover({ theme }) {
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Header */}
               <div className="mpHead">
                 <div className="mpTitle">PETRUL RADIO</div>
                 <button
@@ -322,6 +298,7 @@ export default function TopMusicPopover({ theme }) {
                 </div>
               </div>
 
+              {/* Progress + time */}
               <div
                 className="mpTimeRow"
                 style={{
@@ -336,6 +313,7 @@ export default function TopMusicPopover({ theme }) {
                 <span>{dur ? formatTime(dur) : "—:—"}</span>
               </div>
 
+              {/* Progress (click+drag) */}
               <div
                 className="mpProgress"
                 role="slider"
@@ -370,6 +348,7 @@ export default function TopMusicPopover({ theme }) {
                 />
               </div>
 
+              {/* Controls */}
               <div className="mpControls">
                 <button type="button" className="mpBtn" onPointerDown={prev} title="Previous">
                   ◀
@@ -390,6 +369,7 @@ export default function TopMusicPopover({ theme }) {
                 </button>
               </div>
 
+              {/* Volume */}
               <div className="mpVol">
                 <div className="mpVolLabel">VOLUME</div>
 
@@ -419,6 +399,7 @@ export default function TopMusicPopover({ theme }) {
                   />
                 </div>
 
+                {/* Fallback range */}
                 <input
                   className="mpVolInput"
                   type="range"
