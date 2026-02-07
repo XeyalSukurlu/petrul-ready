@@ -4330,3 +4330,92 @@ body.menu-open .mobileMenuSheet{
 }
 }
 
+/* ===================================================== */
+/* 🚀 MOBILE PERFORMANCE + HAMBURGER FIX (SAFE OVERRIDE) */
+/* ===================================================== */
+
+@media (max-width: 900px) {
+
+  /* --------- 1) AĞIR EFFEKTİ KƏSKİN AZALT --------- */
+
+  .topbar,
+  .sectionInner,
+  .glass,
+  .modal,
+  .overlay,
+  .gamePanel,
+  .gameOver,
+  .card,
+  .panel,
+  .questionCard,
+  .petrulMsgCard,
+  .memeBubble,
+  .memeBubbleInner,
+  .mobileMenuSheet {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+  }
+
+  /* --------- 2) BACKGROUND DONMASINI TAM ARADAN QALDIR --------- */
+
+  .bgArt {
+    background-attachment: scroll !important;
+    will-change: auto !important;
+  }
+
+  .bgArt::before,
+  .bgArt::after {
+    animation: none !important;
+    filter: none !important;
+    opacity: 0 !important; /* Mobil üçün ağır mist layer-lər tam söndürülür */
+  }
+
+  /* --------- 3) HAMBURGER BACKDROP (TÜND + STABİL) --------- */
+
+  .mobileMenuBackdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.85) !important; /* Çox tünd, peşəkar overlay */
+    z-index: 9998 !important;
+    pointer-events: auto !important;
+  }
+
+  /* --------- 4) HAMBURGER SHEET (DÜZGÜN QAT + SÜRƏTLİ) --------- */
+
+  .mobileMenuSheet {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    height: 100vh !important;
+    width: min(86vw, 360px) !important;
+    background: linear-gradient(180deg, #0b0b0b, #020202) !important;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+    box-shadow: 0 0 28px rgba(0,0,0,0.6) !important;
+  }
+
+  /* İç kontent donmasın */
+  .mobileMenuList {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* --------- 5) HERO DONMASINI SÖNDÜR --------- */
+
+  #home .sectionInner::before,
+  #home .sectionInner::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* --------- 6) ÜMUMİ SÜRƏTLƏNDİRMƏ --------- */
+
+  * {
+    transform: translateZ(0); /* GPU stabilizasiyası */
+  }
+
+  body.menu-open {
+    overflow: hidden !important;
+  }
+}

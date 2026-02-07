@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export default function TopBar({
   themeName, // (istifadə olunmaya bilər, saxladım)
@@ -9,6 +10,8 @@ export default function TopBar({
   onOpenDMR, // optional
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [portalEl, setPortalEl] = useState(null);
+  const closeBtnRef = useRef(null);
 
   const items = useMemo(
     () => [
@@ -28,23 +31,35 @@ export default function TopBar({
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     } else {
-      // fallback (əgər id yoxdur)
       window.location.hash = href;
     }
   };
 
   const handleNav = (it, { closeMenu } = { closeMenu: false }) => {
-    if (it?.isDMR) {
-      onOpenDMR?.();
-    }
+    if (it?.isDMR) onOpenDMR?.();
     scrollTo(it.href);
     if (closeMenu) setMenuOpen(false);
   };
 
-  // ✅ Menu open olanda:
-  // - body scroll lock
-  // - body.menu-open class əlavə et (sənin CSS fix-in işləsin)
+  // Portal container (overlay-i body-ə çıxarırıq ki hero altında qalmasın)
   useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const el = document.createElement("div");
+    el.setAttribute("id", "topbar-mobile-menu-root");
+    document.body.appendChild(el);
+    setPortalEl(el);
+
+    return () => {
+      document.body.removeChild(el);
+      setPortalEl(null);
+    };
+  }, []);
+
+  // Menu open olanda: body scroll lock + class
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
     const body = document.body;
 
     if (!menuOpen) {
@@ -75,7 +90,7 @@ export default function TopBar({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
 
-  // Ekran böyüyəndə (desktop-a keçəndə) menu açıq qalmasın
+  // Desktop-a keçəndə menu açıq qalmasın
   useEffect(() => {
     if (!menuOpen) return;
 
@@ -87,6 +102,80 @@ export default function TopBar({
     mq.addEventListener?.("change", onChange);
     return () => mq.removeEventListener?.("change", onChange);
   }, [menuOpen]);
+
+  // Açılarkən close düyməsinə fokus (mobil UX + klik donma hissini azaldır)
+  useEffect(() => {
+    if (!menuOpen) return;
+    closeBtnRef.current?.focus?.();
+  }, [menuOpen]);
+
+  const openMenu = () => setMenuOpen(true);
+  const closeMenu = () => setMenuOpen(false);
+
+  const overlay =
+    menuOpen && portalEl
+      ? createPortal(
+          <>
+            {/* Backdrop: həmişə üst qat + klik keçir */}
+            <div
+              className="mobileMenuBackdrop"
+              role="presentation"
+              onMouseDown={closeMenu}
+              onTouchStart={closeMenu}
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 9998,
+                background: "rgba(0,0,0,0.72)",
+                pointerEvents: "auto",
+              }}
+            />
+
+            {/* Sheet: həmişə üst qat */}
+            <div
+              className="mobileMenuSheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menu"
+              style={{
+                position: "fixed",
+                top: 0,
+                right: 0,
+                height: "100vh",
+                width: "min(86vw, 360px)",
+                zIndex: 9999,
+                pointerEvents: "auto",
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              <button
+                ref={closeBtnRef}
+                className="mobileMenuClose"
+                type="button"
+                onClick={closeMenu}
+                aria-label="Close menu"
+              >
+                ✕
+              </button>
+
+              <div className="mobileMenuList">
+                {items.map((it) => (
+                  <button
+                    key={it.href}
+                    type="button"
+                    className="mobileMenuItem"
+                    onClick={() => handleNav(it, { closeMenu: true })}
+                  >
+                    {it.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>,
+          portalEl
+        )
+      : null;
 
   return (
     <header className="topbar">
@@ -103,7 +192,7 @@ export default function TopBar({
         </div>
       </div>
 
-      {/* Desktop nav (mövcud dizaynı pozmamaq üçün <a> saxlanıldı) */}
+      {/* Desktop nav */}
       <nav className="nav" aria-label="Primary">
         {items.map((it) => (
           <a
@@ -126,8 +215,8 @@ export default function TopBar({
         <button
           className="mobileMenuBtn"
           type="button"
-          onClick={() => setMenuOpen(true)}
-          aria-label="Open menu"
+          onClick={menuOpen ? closeMenu : openMenu}
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
           aria-haspopup="dialog"
           aria-expanded={menuOpen ? "true" : "false"}
         >
@@ -157,44 +246,8 @@ export default function TopBar({
         {rightSlot}
       </div>
 
-      {/* Mobile menu overlay */}
-      {menuOpen && (
-        <>
-          <div
-            className="mobileMenuBackdrop"
-            onClick={() => setMenuOpen(false)}
-            role="presentation"
-          />
-          <div
-            className="mobileMenuSheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Menu"
-          >
-            <button
-              className="mobileMenuClose"
-              type="button"
-              onClick={() => setMenuOpen(false)}
-              aria-label="Close menu"
-            >
-              ✕
-            </button>
-
-            <div className="mobileMenuList">
-              {items.map((it) => (
-                <button
-                  key={it.href}
-                  type="button"
-                  className="mobileMenuItem"
-                  onClick={() => handleNav(it, { closeMenu: true })}
-                >
-                  {it.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      {/* Portal overlay */}
+      {overlay}
     </header>
   );
 }

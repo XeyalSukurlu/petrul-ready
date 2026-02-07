@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 
@@ -26,7 +26,6 @@ export default function TopMusicPopover({ theme }) {
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
-
   const [vol, setVol] = useState(0.8);
 
   // idle | loading | ready | error
@@ -36,43 +35,47 @@ export default function TopMusicPopover({ theme }) {
   const [dur, setDur] = useState(0);
   const [pos, setPos] = useState(0);
 
-  const clamp01 = (n) => Math.max(0, Math.min(1, n));
+  const clamp01 = useCallback(
+    (n) => Math.max(0, Math.min(1, n)),
+    []
+  );
 
-  const formatTime = (s) => {
+  const formatTime = useCallback((s) => {
     const n = Math.max(0, Math.floor(s || 0));
     const m = Math.floor(n / 60);
     const ss = String(n % 60).padStart(2, "0");
     return `${m}:${ss}`;
-  };
+  }, []);
 
-  const setAudioSrc = (i) => {
-    const a = audioRef.current;
-    if (!a) return;
+  const setAudioSrc = useCallback(
+    (i) => {
+      const a = audioRef.current;
+      if (!a) return;
 
-    setErr("");
-    setStatus("loading");
-    setDur(0);
-    setPos(0);
+      setErr("");
+      setStatus("loading");
+      setDur(0);
+      setPos(0);
 
-    try {
-      a.pause();
-      a.currentTime = 0;
-    } catch {}
+      try {
+        a.pause();
+        a.currentTime = 0;
+      } catch {}
 
-    a.src = tracks[i]?.src || "";
-    a.load();
-  };
+      a.src = tracks[i]?.src || "";
+      a.load();
+    },
+    [tracks]
+  );
 
-  // initial load is deferred (mobile perf): load only after user opens/plays
-
-  // volume sync
+  // ---- VOLUME SYNC ----
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
     a.volume = clamp01(vol);
-  }, [vol]);
+  }, [vol, clamp01]);
 
-  // when track changes (deferred load: only if open/playing or already loaded)
+  // ---- TRACK CHANGE (DEFERRED LOAD) ----
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -80,10 +83,10 @@ export default function TopMusicPopover({ theme }) {
     const desired = tracks[idx]?.src || "";
     const alreadyLoaded = Boolean(a.currentSrc || a.src);
 
-    // Only load a track if the user has opened the player or is already playing,
-    // or if something was loaded before (avoid mobile network/CPU on initial page load).
     if (open || playing || alreadyLoaded) {
-      if (a.currentSrc !== desired && a.src !== desired) setAudioSrc(idx);
+      if (a.currentSrc !== desired && a.src !== desired) {
+        setAudioSrc(idx);
+      }
 
       if (playing) {
         a.play().catch(() => {
@@ -93,16 +96,17 @@ export default function TopMusicPopover({ theme }) {
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, open]);
+  }, [idx, open, playing, tracks, setAudioSrc]);
 
-  // audio events + progress loop
+  // ---- AUDIO EVENTS + PROGRESS (OPTIMIZED RAF) ----
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
 
     const tick = () => {
-      if (!draggingSeekRef.current) setPos(a.currentTime || 0);
+      if (!draggingSeekRef.current) {
+        setPos(a.currentTime || 0);
+      }
       rafRef.current = requestAnimationFrame(tick);
     };
 
@@ -154,25 +158,31 @@ export default function TopMusicPopover({ theme }) {
     };
   }, [tracks.length]);
 
-  // close only on ESC
+  // ---- ESC CLOSE ----
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => e.key === "Escape" && setOpen(false);
+
+    const onKey = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // global pointerup to stop drag
+  // ---- GLOBAL POINTERUP (DRAG END) ----
   useEffect(() => {
     const onUp = () => {
       draggingSeekRef.current = false;
       draggingVolRef.current = false;
     };
+
     window.addEventListener("pointerup", onUp);
     return () => window.removeEventListener("pointerup", onUp);
   }, []);
 
-  const safePlay = async () => {
+  // ---- SAFE PLAY ----
+  const safePlay = useCallback(async () => {
     const a = audioRef.current;
     if (!a) return;
 
@@ -185,47 +195,55 @@ export default function TopMusicPopover({ theme }) {
       setErr("Playback blocked by browser policy. Click Play again.");
       setPlaying(false);
     }
-  };
+  }, []);
 
-  const togglePlay = async (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
+  const togglePlay = useCallback(
+    async (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
 
-    const a = audioRef.current;
-    if (!a) return;
+      const a = audioRef.current;
+      if (!a) return;
 
-    if (status === "error") {
-      setAudioSrc(idx);
-    }
+      if (status === "error") {
+        setAudioSrc(idx);
+      }
 
-    // If nothing loaded yet (first interaction), load the current track now.
-    const desired = tracks[idx]?.src || "";
-    if (!a.currentSrc && (!a.src || a.src !== desired)) {
-      setAudioSrc(idx);
-    }
+      const desired = tracks[idx]?.src || "";
+      if (!a.currentSrc && (!a.src || a.src !== desired)) {
+        setAudioSrc(idx);
+      }
 
-    if (!playing) {
-      await safePlay();
-    } else {
-      a.pause();
-    }
-  };
+      if (!playing) {
+        await safePlay();
+      } else {
+        a.pause();
+      }
+    },
+    [idx, playing, safePlay, setAudioSrc, status, tracks]
+  );
 
-  const next = (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
-    setIdx((v) => (v + 1) % tracks.length);
-  };
+  const next = useCallback(
+    (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      setIdx((v) => (v + 1) % tracks.length);
+    },
+    [tracks.length]
+  );
 
-  const prev = (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
-    setIdx((v) => (v - 1 + tracks.length) % tracks.length);
-  };
+  const prev = useCallback(
+    (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      setIdx((v) => (v - 1 + tracks.length) % tracks.length);
+    },
+    [tracks.length]
+  );
 
   const progress = dur > 0 ? clamp01(pos / dur) : 0;
 
-  const setSeekFromPointer = (e) => {
+  const setSeekFromPointer = useCallback((e) => {
     const a = audioRef.current;
     if (!a || !dur) return;
 
@@ -235,13 +253,13 @@ export default function TopMusicPopover({ theme }) {
 
     setPos(t);
     a.currentTime = t;
-  };
+  }, [dur, clamp01]);
 
-  const setVolFromPointer = (e) => {
+  const setVolFromPointer = useCallback((e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const p = clamp01((e.clientX - rect.left) / rect.width);
     setVol(p);
-  };
+  }, [clamp01]);
 
   return (
     <div className="topPlayer" onPointerDown={(e) => e.stopPropagation()}>
