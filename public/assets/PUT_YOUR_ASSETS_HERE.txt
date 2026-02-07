@@ -1,0 +1,7 @@
+Put your assets here (you will upload them yourself):
+- bg1.jpg ... bg5.jpg  (backgrounds)
+- track1.mp3 ... track5.mp3 (music)
+- sfx_win.mp3 , sfx_lose.mp3 (optional)
+No other changes needed. The site will automatically:
+- switch backgrounds with Switch Design
+- generate Meme Mode bubble sprites from the CURRENT background image
