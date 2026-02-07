@@ -1,200 +1,130 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
-export default function TopBar({
-  themeName, // (istifadə olunmaya bilər, saxladım)
-  onSwitchDesign,
-  memeMode,
-  onToggleMeme,
-  rightSlot,
-  onOpenDMR, // optional
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const items = useMemo(
+/**
+ * TopBar
+ * - Desktop: inline nav links
+ * - Mobile: hamburger opens a modal menu with backdrop
+ * - Fixes: click not working (z-index / pointer events), adds backdrop, locks body scroll
+ */
+export default function TopBar() {
+  const navLinks = useMemo(
     () => [
-      { label: "Home", href: "#home" },
-      { label: "About Us", href: "#about" },
-      { label: "Game", href: "#game" },
-      { label: "DMR", href: "#dmr", isDMR: true },
+      { label: "Home", id: "home" },
+      { label: "About Us", id: "about" },
+      { label: "Game", id: "game" },
+      { label: "DMR", id: "dmr" },
     ],
     []
   );
 
-  const scrollTo = (href) => {
-    const id = href?.startsWith("#") ? href.slice(1) : "";
-    if (!id) return;
+  const [mobileOpen, setMobileOpen] = useState(false);
 
+  const scrollToSection = (id) => {
     const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      // fallback (əgər id yoxdur)
-      window.location.hash = href;
-    }
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handleNav = (it, { closeMenu } = { closeMenu: false }) => {
-    if (it?.isDMR) {
-      onOpenDMR?.();
-    }
-    scrollTo(it.href);
-    if (closeMenu) setMenuOpen(false);
+  const onNavClick = (id) => {
+    setMobileOpen(false);
+    window.requestAnimationFrame(() => scrollToSection(id));
   };
 
-  // ✅ Menu open olanda:
-  // - body scroll lock
-  // - body.menu-open class əlavə et (sənin CSS fix-in işləsin)
   useEffect(() => {
-    const body = document.body;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
 
-    if (!menuOpen) {
-      body.style.overflow = "";
-      body.classList.remove("menu-open");
-      return;
-    }
-
-    const prevOverflow = body.style.overflow;
-    body.style.overflow = "hidden";
-    body.classList.add("menu-open");
+    const prevOverflow = document.body.style.overflow;
+    if (mobileOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = prevOverflow || "";
 
     return () => {
-      body.style.overflow = prevOverflow;
-      body.classList.remove("menu-open");
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow || "";
     };
-  }, [menuOpen]);
-
-  // ESC ilə bağla
-  useEffect(() => {
-    if (!menuOpen) return;
-
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [menuOpen]);
-
-  // Ekran böyüyəndə (desktop-a keçəndə) menu açıq qalmasın
-  useEffect(() => {
-    if (!menuOpen) return;
-
-    const mq = window.matchMedia("(min-width: 901px)");
-    const onChange = (e) => {
-      if (e.matches) setMenuOpen(false);
-    };
-
-    mq.addEventListener?.("change", onChange);
-    return () => mq.removeEventListener?.("change", onChange);
-  }, [menuOpen]);
+  }, [mobileOpen]);
 
   return (
     <header className="topbar">
-      <div className="brand">
-        <span className="brandDot" />
-        <div>
+      <div className="topbarInner">
+        <div className="brand">
           <div className="brandTitle">PETRUL</div>
-          <div className="logoSub">
-            Mystic Community
-            <span className="mcLogo">
-              <span className="mcInner">mC</span>
-            </span>
-          </div>
+          <div className="brandSub">Mystic Community</div>
         </div>
-      </div>
 
-      {/* Desktop nav (mövcud dizaynı pozmamaq üçün <a> saxlanıldı) */}
-      <nav className="nav" aria-label="Primary">
-        {items.map((it) => (
-          <a
-            key={it.href}
-            href={it.href}
-            onClick={(e) => {
-              e.preventDefault();
-              handleNav(it, { closeMenu: false });
-            }}
-            title={it.isDMR ? "Daily Micro Ritual" : undefined}
-            aria-label={it.isDMR ? "Daily Micro Ritual" : undefined}
-          >
-            {it.label}
-          </a>
-        ))}
-      </nav>
-
-      <div className="topbarRight">
-        {/* Mobile hamburger */}
-        <button
-          className="mobileMenuBtn"
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          aria-label="Open menu"
-          aria-haspopup="dialog"
-          aria-expanded={menuOpen ? "true" : "false"}
-        >
-          ☰
-        </button>
-
-        <button
-          className="iconBtn"
-          onClick={onSwitchDesign}
-          title="Switch Design"
-          aria-label="Switch Design"
-          type="button"
-        >
-          ✦
-        </button>
-
-        <button
-          className={`iconBtn ${memeMode ? "iconBtnOn" : ""}`}
-          onClick={onToggleMeme}
-          title="Meme Mode"
-          aria-label="Meme Mode"
-          type="button"
-        >
-          ☄
-        </button>
-
-        {rightSlot}
-      </div>
-
-      {/* Mobile menu overlay */}
-      {menuOpen && (
-        <>
-          <div
-            className="mobileMenuBackdrop"
-            onClick={() => setMenuOpen(false)}
-            role="presentation"
-          />
-          <div
-            className="mobileMenuSheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Menu"
-          >
+        <nav className="nav" aria-label="Primary navigation">
+          {navLinks.map((link) => (
             <button
-              className="mobileMenuClose"
+              key={link.id}
+              className="navLink"
               type="button"
-              onClick={() => setMenuOpen(false)}
-              aria-label="Close menu"
+              onClick={() => onNavClick(link.id)}
             >
-              ✕
+              {link.label}
             </button>
+          ))}
+        </nav>
 
-            <div className="mobileMenuList">
-              {items.map((it) => (
-                <button
-                  key={it.href}
-                  type="button"
-                  className="mobileMenuItem"
-                  onClick={() => handleNav(it, { closeMenu: true })}
-                >
-                  {it.label}
-                </button>
-              ))}
+        <button
+          className="hamburgerBtn"
+          type="button"
+          aria-label="Open menu"
+          aria-expanded={mobileOpen ? "true" : "false"}
+          onClick={() => setMobileOpen(true)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        {mobileOpen && (
+          <div className="mobileMenuLayer" role="dialog" aria-modal="true">
+            <button
+              className="mobileMenuBackdrop"
+              type="button"
+              aria-label="Close menu"
+              onClick={() => setMobileOpen(false)}
+            />
+
+            <div className="mobileMenuPanel" role="document">
+              <button
+                className="mobileMenuClose"
+                type="button"
+                aria-label="Close menu"
+                onClick={() => setMobileOpen(false)}
+              >
+                ×
+              </button>
+
+              <div className="mobileMenuList">
+                {navLinks.map((link) => (
+                  <button
+                    key={link.id}
+                    className="mobileMenuItem"
+                    type="button"
+                    onClick={() => onNavClick(link.id)}
+                  >
+                    {link.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </>
-      )}
+        )}
+
+        <div className="topbarRight">
+          <button className="iconBtn" type="button" aria-label="Star">
+            ✨
+          </button>
+          <button className="iconBtn" type="button" aria-label="Wand">
+            🪄
+          </button>
+          <button className="iconBtn" type="button" aria-label="Music">
+            🎵
+          </button>
+        </div>
+      </div>
     </header>
   );
 }
