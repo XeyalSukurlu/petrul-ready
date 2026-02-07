@@ -4419,3 +4419,96 @@ body.menu-open .mobileMenuSheet{
     overflow: hidden !important;
   }
 }
+
+/* ===================================================== */
+/* ✅ MOBILE: Hamburger + Background + Performance (FINAL) */
+/* ===================================================== */
+@media (max-width: 900px) {
+
+  /* ---------- HAMBURGER: bütün köhnə sheet/backdrop qaydalarını override et ---------- */
+  .mobileMenuBackdrop{
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0,0,0,0.88) !important;   /* daha tünd */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    z-index: 2147483646 !important;
+    pointer-events: auto !important;
+  }
+
+  .mobileMenuSheet{
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: auto !important;              /* köhnə left/right 12px qaydalarını öldürür */
+    height: 100vh !important;
+    width: min(86vw, 360px) !important;
+    transform: none !important;         /* slideDown/translate kimi şeyləri sıfırlayır */
+    animation: none !important;         /* köhnə slideDown varsa, donmaya səbəb olur */
+    z-index: 2147483647 !important;
+    pointer-events: auto !important;
+
+    background: linear-gradient(180deg, #0b0b0b, #020202) !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    box-shadow: 0 0 28px rgba(0,0,0,0.65) !important;
+  }
+
+  .mobileMenuList{
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ---------- MOBİL DONMA: ağır blur/filtrləri söndür ---------- */
+  .topbar,
+  .sectionInner,
+  .glass,
+  .modal,
+  .overlay,
+  .gamePanel,
+  .gameOver,
+  .card,
+  .panel,
+  .questionCard,
+  .petrulMsgCard,
+  .memeBubble,
+  .memeBubbleInner{
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+  }
+
+  /* ---------- BACKGROUND: iOS fixed repaint problemini bypass ---------- */
+  .bgArt{
+    background-color: #000 !important;     /* şəkil gec yüklənsə də qara fallback */
+    background-position: center !important;
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+
+    /* fixed bg + böyük şəkil mobil üçün ağırdır */
+    position: absolute !important;
+    inset: 0 !important;
+  }
+
+  /* Mist / noise animasiyaları mobil üçün öldürülür */
+  .bgArt::before,
+  .bgArt::after{
+    animation: none !important;
+    filter: none !important;
+    opacity: 0 !important;
+  }
+
+  /* əlavə sürət üçün: ağır kölgələri azaldır */
+  .card,
+  .panel,
+  .questionCard,
+  .petrulMsgCard{
+    box-shadow: 0 10px 24px rgba(0,0,0,0.35) !important;
+  }
+
+  /* menyu açıq olanda scroll kilidi */
+  body.menu-open{
+    overflow: hidden !important;
+    touch-action: none;
+  }
+}
