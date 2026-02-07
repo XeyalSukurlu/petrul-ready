@@ -54,7 +54,6 @@ export default function TopMusicPopover({ theme }) {
     setDur(0);
     setPos(0);
 
-    // Hard reset (helps Safari/Chrome caching edge cases)
     try {
       a.pause();
       a.currentTime = 0;
@@ -64,11 +63,7 @@ export default function TopMusicPopover({ theme }) {
     a.load();
   };
 
-  // initial load
-  useEffect(() => {
-    setAudioSrc(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // initial load is deferred (mobile perf): load only after user opens/plays
 
   // volume sync
   useEffect(() => {
@@ -77,22 +72,29 @@ export default function TopMusicPopover({ theme }) {
     a.volume = clamp01(vol);
   }, [vol]);
 
-  // when track changes
+  // when track changes (deferred load: only if open/playing or already loaded)
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
 
-    setAudioSrc(idx);
+    const desired = tracks[idx]?.src || "";
+    const alreadyLoaded = Boolean(a.currentSrc || a.src);
 
-    if (playing) {
-      a.play().catch(() => {
-        setStatus("error");
-        setErr("Playback blocked by browser. Click Play again.");
-        setPlaying(false);
-      });
+    // Only load a track if the user has opened the player or is already playing,
+    // or if something was loaded before (avoid mobile network/CPU on initial page load).
+    if (open || playing || alreadyLoaded) {
+      if (a.currentSrc !== desired && a.src !== desired) setAudioSrc(idx);
+
+      if (playing) {
+        a.play().catch(() => {
+          setStatus("error");
+          setErr("Playback blocked by browser. Click Play again.");
+          setPlaying(false);
+        });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx]);
+  }, [idx, open]);
 
   // audio events + progress loop
   useEffect(() => {
@@ -105,7 +107,6 @@ export default function TopMusicPopover({ theme }) {
     };
 
     const onLoadStart = () => setStatus("loading");
-
     const onLoadedMeta = () => setDur(a.duration || 0);
 
     const onCanPlay = () => {
@@ -197,6 +198,12 @@ export default function TopMusicPopover({ theme }) {
       setAudioSrc(idx);
     }
 
+    // If nothing loaded yet (first interaction), load the current track now.
+    const desired = tracks[idx]?.src || "";
+    if (!a.currentSrc && (!a.src || a.src !== desired)) {
+      setAudioSrc(idx);
+    }
+
     if (!playing) {
       await safePlay();
     } else {
@@ -238,7 +245,7 @@ export default function TopMusicPopover({ theme }) {
 
   return (
     <div className="topPlayer" onPointerDown={(e) => e.stopPropagation()}>
-      <audio ref={audioRef} preload="auto" />
+      <audio ref={audioRef} preload="none" />
 
       <button
         type="button"
@@ -270,7 +277,6 @@ export default function TopMusicPopover({ theme }) {
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="mpHead">
                 <div className="mpTitle">PETRUL RADIO</div>
                 <button
@@ -298,7 +304,6 @@ export default function TopMusicPopover({ theme }) {
                 </div>
               </div>
 
-              {/* Progress + time */}
               <div
                 className="mpTimeRow"
                 style={{
@@ -313,7 +318,6 @@ export default function TopMusicPopover({ theme }) {
                 <span>{dur ? formatTime(dur) : "—:—"}</span>
               </div>
 
-              {/* Progress (click+drag) */}
               <div
                 className="mpProgress"
                 role="slider"
@@ -348,7 +352,6 @@ export default function TopMusicPopover({ theme }) {
                 />
               </div>
 
-              {/* Controls */}
               <div className="mpControls">
                 <button type="button" className="mpBtn" onPointerDown={prev} title="Previous">
                   ◀
@@ -369,7 +372,6 @@ export default function TopMusicPopover({ theme }) {
                 </button>
               </div>
 
-              {/* Volume */}
               <div className="mpVol">
                 <div className="mpVolLabel">VOLUME</div>
 
@@ -399,7 +401,6 @@ export default function TopMusicPopover({ theme }) {
                   />
                 </div>
 
-                {/* Fallback range */}
                 <input
                   className="mpVolInput"
                   type="range"
