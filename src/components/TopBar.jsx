@@ -182,14 +182,11 @@ export default function TopBar({
     <header className="topbar">
       <div className="brand">
         <span className="brandDot" />
-        <div>
+        <div className="brandTitleRow">
           <div className="brandTitle">PETRUL</div>
-          <div className="logoSub">
-            Mystic Community
-            <span className="mcLogo">
-              <span className="mcInner">mC</span>
-            </span>
-          </div>
+          <span className="mcLogo" aria-label="mC logo">
+            <span className="mcInner">mC</span>
+          </span>
         </div>
       </div>
 

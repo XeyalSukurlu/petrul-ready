@@ -114,7 +114,18 @@ a:hover{ text-decoration:underline; }
   background: var(--accent);
   box-shadow: 0 0 16px var(--glow);
 }
-.brandTitle{ font-weight:900; letter-spacing:2px; }
+.brandTitleRow{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  margin-top: 4px;
+}
+.brandTitle{
+  font-weight:900;
+  letter-spacing:2px;
+  white-space: nowrap;
+  line-height: 1;
+}
 .brandSub{ font-size:12px; opacity:.80; }
 
 .nav{ display:flex; gap:18px; flex:1; justify-content:center; }
@@ -4365,6 +4376,97 @@ body.menu-open .mobileMenuBackdrop{
 }
 body.menu-open .mobileMenuSheet{
   z-index: 2147483647 !important;
+}
+
+/* ===== Mobile fix: topbar brand + Mind Game final poster layout ===== */
+.topbar .brand{
+  min-width: 0;
+}
+
+.topbar .brandTitleRow{
+  max-width: 100%;
+}
+
+.topbar .mcLogo{
+  flex: 0 0 28px;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+.topbarRight{
+  flex-shrink: 0;
+}
+
+.mindFinal .mindActions{
+  justify-content: center;
+}
+
+.mindFinal .mindActions .btn{
+  min-height: 44px;
+}
+
+@media (max-width: 980px){
+  .topbar .brand{
+    flex: 1;
+    min-width: 0;
+  }
+
+  .topbar .brandTitleRow{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .topbar .brandTitle{
+    margin-top: 2px;
+    font-size: clamp(18px, 5.2vw, 24px);
+  }
+
+  .topbar .mcLogo{
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 768px){
+  .mindFinal{
+    width: 100%;
+    gap: 12px;
+  }
+
+  .mindFinalTitle{
+    font-size: clamp(24px, 7.2vw, 34px);
+    text-align: center;
+  }
+
+  .mindFinalCard{
+    width: 100%;
+    max-width: 560px;
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .mindFinalImgWrap{
+    aspect-ratio: 4 / 5;
+    max-height: 54vh;
+  }
+
+  .mindFinalBadge{
+    font-size: 12px;
+    padding: 9px 10px;
+  }
+
+  .mindFinal .mindActions{
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .mindFinal .mindActions .btn{
+    width: 100%;
+  }
 }
 
 /* ===== Mobile fix: mC logo and Mind Game final poster layout ===== */
