@@ -4367,6 +4367,90 @@ body.menu-open .mobileMenuSheet{
   z-index: 2147483647 !important;
 }
 
+/* ===== Mobile fix: mC logo and Mind Game final poster layout ===== */
+.topbar .logoSub{
+  white-space: nowrap;
+}
 
+.topbar .mcLogo{
+  flex: 0 0 28px;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+.topbarRight{
+  flex-shrink: 0;
+}
+
+.mindFinal .mindActions{
+  justify-content: center;
+}
+
+.mindFinal .mindActions .btn{
+  min-height: 44px;
+}
+
+@media (max-width: 768px){
+  .topbar .brand{
+    min-width: 0;
+    flex: 1;
+  }
+
+  .topbar .brand > div{
+    min-width: 0;
+  }
+
+  .topbar .logoSub{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    font-size: 12px;
+    line-height: 1.15;
+  }
+
+  .topbar .mcLogo{
+    width: 28px;
+    height: 28px;
+  }
+
+  .mindFinal{
+    width: 100%;
+    gap: 12px;
+  }
+
+  .mindFinalTitle{
+    font-size: clamp(24px, 7.2vw, 34px);
+    text-align: center;
+  }
+
+  .mindFinalCard{
+    width: 100%;
+    max-width: 560px;
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .mindFinalImgWrap{
+    aspect-ratio: 4 / 5;
+    max-height: 54vh;
+  }
+
+  .mindFinalBadge{
+    font-size: 12px;
+    padding: 9px 10px;
+  }
+
+  .mindFinal .mindActions{
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .mindFinal .mindActions .btn{
+    width: 100%;
+  }
+}
 
 
