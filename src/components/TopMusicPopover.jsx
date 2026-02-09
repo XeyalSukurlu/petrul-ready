@@ -7,13 +7,13 @@ export default function TopMusicPopover({ theme }) {
 
   const tracks = useMemo(
     () => [
-      { name: "Track 1", src: `${base}assets/track1.mp3` },
-      { name: "Track 2", src: `${base}assets/track2.mp3` },
-      { name: "Track 3", src: `${base}assets/track3.mp3` },
-      { name: "Track 4", src: `${base}assets/track4.mp3` },
-      { name: "Track 5", src: `${base}assets/track5.mp3` },
-      { name: "Track 6", src: `${base}assets/track6.mp3` },
-      { name: "Track 7", src: `${base}assets/track7.mp3` },
+      { name: "Petrul Coming", src: `${base}assets/track1.mp3` },
+      { name: "Petrul.Disco-Funk", src: `${base}assets/track2.mp3` },
+      { name: "Petrul.Music.Tiktok", src: `${base}assets/track3.mp3` },
+      { name: "Petrul.MEM-COMEDY", src: `${base}assets/track4.mp3` },
+      { name: "Petrul Slow Lane Royalty", src: `${base}assets/track5.mp3` },
+      { name: "Petrul No Brake Mode", src: `${base}assets/track6.mp3` },
+      { name: "BOUNCE LIKE PETRUL", src: `${base}assets/track7.mp3` },
     ],
     [base]
   );
@@ -217,6 +217,7 @@ export default function TopMusicPopover({ theme }) {
   };
 
   const progress = dur > 0 ? clamp01(pos / dur) : 0;
+   const activeTrack = tracks[idx];
 
   const setSeekFromPointer = (e) => {
     const a = audioRef.current;
@@ -287,6 +288,9 @@ export default function TopMusicPopover({ theme }) {
                   ✕
                 </button>
               </div>
+
+            
+
 
               <div className="mpTrackLine">
                 <div className="mpTrackName">{tracks[idx].name}</div>
@@ -368,6 +372,17 @@ export default function TopMusicPopover({ theme }) {
                   ▶
                 </button>
               </div>
+
+     <a
+                className="mpDownloadBtn"
+                href={activeTrack.src}
+                download={`${activeTrack.name.toLowerCase().replace(/\s+/g, "-")}.mp3`}
+                target="_blank"
+                rel="noreferrer"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                ⬇  Download
+              </a>
 
               {/* Volume */}
               <div className="mpVol">

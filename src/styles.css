@@ -1837,6 +1837,38 @@ button:hover, .btn:hover{
   width: 100%;
 }
 
+.mpDownloadBtn{
+  margin-top: 14px;
+  display: inline-flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.28);
+  background:
+    linear-gradient(140deg, rgba(255,204,120,0.45), rgba(255,130,90,0.35), rgba(130,220,255,0.32));
+  color: #fff;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-decoration: none;
+  text-transform: uppercase;
+  box-shadow: 0 0 22px rgba(255,179,71,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
+  outline: 1px solid rgba(255,255,255,0.22);
+  transition: transform .14s ease, box-shadow .14s ease, filter .14s ease;
+}
+.mpDownloadBtn:hover{
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 0 28px rgba(255,179,71,0.46), 0 0 16px rgba(90,220,255,0.26);
+  filter: saturate(1.08);
+}
+.mpDownloadBtn:active{
+  transform: translateY(0);
+}
+
+
+
 .mpErr{
   margin-top: 10px;
   font-size: 12px;
@@ -1871,6 +1903,9 @@ button:hover, .btn:hover{
   right: 18px !important;
   top: 76px !important;
   z-index: 2147483647 !important;
+  max-height: calc(100vh - 92px) !important;
+  overflow-y: auto !important;
+
 }
 
 @media (max-width: 520px){
