@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+
 import BreathRitualOverlay from "./components/BreathRitualOverlay.jsx";
 import QuestionOfDayModal from "./components/QuestionOfDayModal.jsx";
 
@@ -148,6 +149,15 @@ export default function App() {
     setCurrentQuestion(String(dailyQuestions[idx] ?? ""));
     setShowQuestion(true);
   };
+
+  useEffect(() => {
+  const onVis = () => {
+    document.body.classList.toggle("paused", document.hidden);
+  };
+  onVis();
+  document.addEventListener("visibilitychange", onVis);
+  return () => document.removeEventListener("visibilitychange", onVis);
+}, []);
 
   return (
     <>

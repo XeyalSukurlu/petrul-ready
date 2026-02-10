@@ -1,26 +1,38 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-function rand(min, max) { return Math.random() * (max - min) + min; }
+function rand(min, max) {
+  return Math.random() * (max - min) + min;
+}
 
 export default function MemeModeOverlay({ enabled, theme, themeId }) {
-  // ✅ Auto throttle: mobile daha yüngül
+  const prefersReducedMotion = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false
+    );
+  }, []);
+
+  if (prefersReducedMotion) return null;
+
   const isMobile = useMemo(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(max-width: 768px)").matches;
   }, []);
 
-  const count = isMobile ? 9 : 14;
+  // PERF: mobile lighter (desktop same)
+  const count = isMobile ? 3 : 14;
 
-  // ⚠️ Yolunu düzgün saxla: public/assets -> /assets
-  // public/asset -> /asset
+  // ✅ Media sources (fallback chain)
+  const memeWebmUrl = useMemo(() => "/assets/mascot-dance.webm", []);
+  const memeMp4Url = useMemo(() => "/assets/mascot-dance.mp4", []);
   const memeGifUrl = useMemo(() => "/assets/mascot-dance.gif", []);
 
   const wrapRef = useRef(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [items, setItems] = useState([]);
+  const [videoFailed, setVideoFailed] = useState(false);
 
-  // Measure overlay box once enabled (ResizeObserver = light)
   useEffect(() => {
     if (!enabled) return;
 
@@ -39,14 +51,16 @@ export default function MemeModeOverlay({ enabled, theme, themeId }) {
   useEffect(() => {
     if (!enabled) return;
 
-    // movement paths (% based, converted to px via box)
     const its = Array.from({ length: count }).map((_, i) => {
-      const x0 = rand(5, 95), y0 = rand(10, 90);
-      const x1 = rand(5, 95), y1 = rand(10, 90);
-      const x2 = rand(5, 95), y2 = rand(10, 90);
+      const x0 = rand(5, 95),
+        y0 = rand(10, 90);
+      const x1 = rand(5, 95),
+        y1 = rand(10, 90);
+      const x2 = rand(5, 95),
+        y2 = rand(10, 90);
       return {
         id: i,
-        s: rand(0.80, 1.12),
+        s: rand(0.8, 1.12),
         d: rand(12, 22),
         r: rand(-8, 8),
         x: [x0, x1, x2, x0],
@@ -57,7 +71,14 @@ export default function MemeModeOverlay({ enabled, theme, themeId }) {
     setItems(its);
   }, [enabled, themeId, count]);
 
+  // Reset failure state when toggling / theme changes
+  useEffect(() => {
+    if (!enabled) return;
+    setVideoFailed(false);
+  }, [enabled, themeId]);
+
   const px = (pct, max) => (max ? (pct / 100) * max : 0);
+  const glow = theme?.glow || "rgba(255,255,255,0.18)";
 
   return (
     <AnimatePresence>
@@ -75,9 +96,7 @@ export default function MemeModeOverlay({ enabled, theme, themeId }) {
             <motion.div
               key={it.id}
               className="memeBubble"
-              style={{
-                boxShadow: `0 0 18px ${theme.glow}`,
-              }}
+              style={{ boxShadow: `0 0 18px ${glow}` }}
               initial={{
                 scale: it.s,
                 rotate: it.r,
@@ -89,16 +108,55 @@ export default function MemeModeOverlay({ enabled, theme, themeId }) {
                 y: it.y.map((v) => px(v, box.h)),
                 rotate: [it.r, it.r + 6, it.r - 6, it.r],
               }}
-              transition={{ duration: it.d, repeat: Infinity, ease: "easeInOut" }}
+              transition={{
+                duration: it.d,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
             >
               <div className="memeBubbleInner" />
-              <img
-                src={memeGifUrl}
-                alt=""
-                className="memeGif"
-                draggable="false"
-                aria-hidden="true"
-              />
+
+              {/* ✅ Video (WebM -> MP4 fallback), and GIF fallback if video fails */}
+              {!videoFailed ? (
+                <video
+                  className="memeGif"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  aria-hidden="true"
+                  onError={() => setVideoFailed(true)}
+                  // 🔥 IMPORTANT: force sizing so it's not "empty"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    display: "block",
+                    objectFit: "cover",
+                    pointerEvents: "none",
+                  }}
+                >
+                  <source src={memeWebmUrl} type="video/webm" />
+                  <source src={memeMp4Url} type="video/mp4" />
+                </video>
+              ) : (
+                <img
+                  src={memeGifUrl}
+                  alt=""
+                  className="memeGif"
+                  draggable="false"
+                  aria-hidden="true"
+                  loading="eager"
+                  decoding="async"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    display: "block",
+                    objectFit: "cover",
+                    pointerEvents: "none",
+                  }}
+                />
+              )}
             </motion.div>
           ))}
         </motion.div>
