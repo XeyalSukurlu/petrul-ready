@@ -8,9 +8,7 @@ function rand(min, max) {
 export default function MemeModeOverlay({ enabled, theme, themeId }) {
   const prefersReducedMotion = useMemo(() => {
     if (typeof window === "undefined") return false;
-    return (
-      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false
-    );
+    return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
   }, []);
 
   if (prefersReducedMotion) return null;
@@ -20,10 +18,10 @@ export default function MemeModeOverlay({ enabled, theme, themeId }) {
     return window.matchMedia("(max-width: 768px)").matches;
   }, []);
 
-  // PERF: mobile lighter (desktop same)
-  const count = isMobile ? 3 : 14;
+  // ✅ PERF: reduce count hard (biggest win)
+  const count = isMobile ? 2 : 6;
 
-  // ✅ Media sources (fallback chain)
+  // ✅ Media sources
   const memeWebmUrl = useMemo(() => "/assets/mascot-dance.webm", []);
   const memeMp4Url = useMemo(() => "/assets/mascot-dance.mp4", []);
   const memeGifUrl = useMemo(() => "/assets/mascot-dance.gif", []);
@@ -32,6 +30,19 @@ export default function MemeModeOverlay({ enabled, theme, themeId }) {
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [items, setItems] = useState([]);
   const [videoFailed, setVideoFailed] = useState(false);
+
+  // ✅ Preload video when enabled (so first appearance is instant)
+  useEffect(() => {
+    if (!enabled) return;
+
+    // lightweight warm-up
+    const v = document.createElement("video");
+    v.preload = "auto";
+    v.muted = true;
+    v.playsInline = true;
+    v.src = memeWebmUrl;
+    // don't attach to DOM; just hint browser to fetch/decode headers
+  }, [enabled, memeWebmUrl]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -52,16 +63,13 @@ export default function MemeModeOverlay({ enabled, theme, themeId }) {
     if (!enabled) return;
 
     const its = Array.from({ length: count }).map((_, i) => {
-      const x0 = rand(5, 95),
-        y0 = rand(10, 90);
-      const x1 = rand(5, 95),
-        y1 = rand(10, 90);
-      const x2 = rand(5, 95),
-        y2 = rand(10, 90);
+      const x0 = rand(5, 95), y0 = rand(10, 90);
+      const x1 = rand(5, 95), y1 = rand(10, 90);
+      const x2 = rand(5, 95), y2 = rand(10, 90);
       return {
         id: i,
-        s: rand(0.8, 1.12),
-        d: rand(12, 22),
+        s: rand(0.85, 1.1),
+        d: rand(14, 24),
         r: rand(-8, 8),
         x: [x0, x1, x2, x0],
         y: [y0, y1, y2, y0],
@@ -71,7 +79,6 @@ export default function MemeModeOverlay({ enabled, theme, themeId }) {
     setItems(its);
   }, [enabled, themeId, count]);
 
-  // Reset failure state when toggling / theme changes
   useEffect(() => {
     if (!enabled) return;
     setVideoFailed(false);
@@ -116,7 +123,6 @@ export default function MemeModeOverlay({ enabled, theme, themeId }) {
             >
               <div className="memeBubbleInner" />
 
-              {/* ✅ Video (WebM -> MP4 fallback), and GIF fallback if video fails */}
               {!videoFailed ? (
                 <video
                   className="memeGif"
@@ -124,10 +130,11 @@ export default function MemeModeOverlay({ enabled, theme, themeId }) {
                   loop
                   muted
                   playsInline
-                  preload="metadata"
+                  preload="auto"
+                  disablePictureInPicture
+                  controlsList="nodownload noplaybackrate noremoteplayback"
                   aria-hidden="true"
                   onError={() => setVideoFailed(true)}
-                  // 🔥 IMPORTANT: force sizing so it's not "empty"
                   style={{
                     width: "100%",
                     height: "100%",

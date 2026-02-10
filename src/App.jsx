@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 
-
 import BreathRitualOverlay from "./components/BreathRitualOverlay.jsx";
 import QuestionOfDayModal from "./components/QuestionOfDayModal.jsx";
 
@@ -91,6 +90,15 @@ function loadOrInitOrder(n) {
   return { order, pos };
 }
 
+/* ✅ Preload helper (for fast theme switching) */
+function preloadImages(urls) {
+  for (const url of urls) {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
+  }
+}
+
 export default function App() {
   const [themeIdx, setThemeIdx] = useState(storage.get("petrul_theme_idx", 0));
   const [memeMode, setMemeMode] = useState(storage.get("petrul_meme_mode", false));
@@ -120,6 +128,28 @@ export default function App() {
     document.documentElement.style.setProperty("--font-body", theme.bodyFont);
   }, [theme]);
 
+  /* ✅ Preload ALL theme backgrounds once (so switch has zero lag)
+     Assumption: your theme backgrounds are /assets/bg1.webp ... bg5.webp
+     If you have more, add them here. */
+  useEffect(() => {
+    const run = () => {
+      preloadImages([
+        "/assets/bg1.webp",
+        "/assets/bg2.webp",
+        "/assets/bg3.webp",
+        "/assets/bg4.webp",
+        "/assets/bg5.webp",
+        "/assets/mascot-dance.webm" 
+      ]);
+    };
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(run, { timeout: 2000 });
+    } else {
+      setTimeout(run, 800);
+    }
+  }, []);
+
   const switchDesign = () => setThemeIdx((i) => (i + 1) % themes.length);
 
   // ✅ Breath ends -> show 1 new question per day, non-repeating until exhausted
@@ -141,48 +171,30 @@ export default function App() {
       return;
     }
 
-    const idx = order[pos];
+    const qIdx = order[pos];
 
     localStorage.setItem(QOD_KEYS.pos, String(pos + 1));
     localStorage.setItem(QOD_KEYS.lastDay, today);
 
-    setCurrentQuestion(String(dailyQuestions[idx] ?? ""));
+    setCurrentQuestion(String(dailyQuestions[qIdx] ?? ""));
     setShowQuestion(true);
   };
 
   useEffect(() => {
-  const onVis = () => {
-    document.body.classList.toggle("paused", document.hidden);
-  };
-  onVis();
-  document.addEventListener("visibilitychange", onVis);
-  return () => document.removeEventListener("visibilitychange", onVis);
-}, []);
+    const onVis = () => {
+      document.body.classList.toggle("paused", document.hidden);
+    };
+    onVis();
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
 
   return (
     <>
-      {/* FX layers */}
-      <div className="sideFlames left" aria-hidden="true" />
-      <div className="sideFlames right" aria-hidden="true" />
-      <div className="embers" aria-hidden="true" />
-
       <div className="app">
-        <div className="sideSmoke leftSmoke" aria-hidden="true" />
-        <div className="sideSmoke rightSmoke" aria-hidden="true" />
-
         <div className="appRoot">
           <BackgroundArt themeId={themeId} />
-
-          <div className="edgeFlame edgeFlameLeft" aria-hidden="true" />
-          <div className="edgeFlame edgeFlameRight" aria-hidden="true" />
-
           <div className="bgVeil" />
-
-          <div className="embersLayer" aria-hidden="true">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <span className="ember" key={i} style={{ "--i": i }} />
-            ))}
-          </div>
 
           <TopBar
             themeName={theme.name}
@@ -190,16 +202,12 @@ export default function App() {
             memeMode={memeMode}
             onToggleMeme={() => setMemeMode((v) => !v)}
             rightSlot={<TopMusicPopover theme={theme} />}
-            onOpenDMR={() => setDmrOpen(true)} // ✅ NEW
+            onOpenDMR={() => setDmrOpen(true)}
           />
 
           <PetrulCompanion anchor="middle" src="/assets/mascot2.png" forceShowNow={false} />
 
-          {/* ✅ FLOW: Ritual → Question */}
-          <BreathRitualOverlay
-            onComplete={handleBreathComplete}
-            manualToken={dmrToken} // ✅ NEW
-          />
+          <BreathRitualOverlay onComplete={handleBreathComplete} manualToken={dmrToken} />
 
           <QuestionOfDayModal
             open={showQuestion}

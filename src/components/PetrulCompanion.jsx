@@ -1,20 +1,11 @@
 // src/components/PetrulCompanion.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getEggLineForToday, getRandomCompanionLine, getTodayCompanionLine } from "../data/petrulCompanionMessages";
+import {
+  getEggLineForToday,
+  getRandomCompanionLine,
+  getTodayCompanionLine,
+} from "../data/petrulCompanionMessages";
 
-/**
- * Petrul Companion
- * - Peeks from left corner
- * - Daily message (English) changes once per local day
- * - Guaranteed: shows at least once per day (unless user dismisses instantly)
- * - Small footprint: won't block UI
- *
- * Mascot path (your case): public/assets/mascot2.png -> "/assets/mascot2.png"
- *
- * ✅ Easter Egg:
- * - click mascot => sparkle + bonus line
- * - cooldown so it doesn't spam
- */
 export default function PetrulCompanion({
   src = "/assets/mascot2.png",
   anchor = "bottom", // "bottom" | "middle"
@@ -24,7 +15,7 @@ export default function PetrulCompanion({
   reappearMaxMs = 240000,
   autoHideMs = 16000,
   forceShowNow = false,
-  eggCooldownMs = 12000, // ✅ new
+  eggCooldownMs = 12000,
 }) {
   const dailyLine = useMemo(() => getTodayCompanionLine(), []);
   const [displayLine, setDisplayLine] = useState(dailyLine);
@@ -47,6 +38,13 @@ export default function PetrulCompanion({
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(fn, rand(minMs, maxMs));
   };
+
+  // ✅ Preload mascot image early (helps instant render when it appears)
+  useEffect(() => {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = src;
+  }, [src]);
 
   const show = () => {
     setImgOk(true);
@@ -96,7 +94,6 @@ export default function PetrulCompanion({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forceShowNow]);
 
-  // auto-hide when visible
   useEffect(() => {
     if (!visible) return;
     const auto = setTimeout(() => hide(), autoHideMs);
@@ -104,7 +101,6 @@ export default function PetrulCompanion({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  // after hiding, schedule an occasional reappear (same day)
   useEffect(() => {
     if (visible) return;
 
@@ -129,12 +125,13 @@ export default function PetrulCompanion({
 
     localStorage.setItem(EGG_LAST_TS, String(Date.now()));
 
-    // sparkle on
     setSparkle(true);
     setTimeout(() => setSparkle(false), 900);
 
-    // show bonus line for a bit, then revert to daily
-    const bonus = Math.random() < 0.22 ? getEggLineForToday() : getRandomCompanionLine(dailyLine);
+    const bonus =
+      Math.random() < 0.22
+        ? getEggLineForToday()
+        : getRandomCompanionLine(dailyLine);
     setDisplayLine(bonus);
 
     if (eggTimerRef.current) clearTimeout(eggTimerRef.current);
@@ -184,7 +181,6 @@ export default function PetrulCompanion({
           user-select: none;
         }
 
-        /* ✅ sparkle burst (lightweight) */
         .sparkleRing{
           position:absolute;
           left: 50%;
@@ -265,10 +261,12 @@ export default function PetrulCompanion({
                 alt="Petrul mascot"
                 className="petrulMascot"
                 draggable="false"
+                decoding="async"
+                fetchpriority="low"
                 onError={() => setImgOk(false)}
                 onClick={(e) => {
                   e.stopPropagation();
-                  runEasterEgg(); // ✅ do NOT hide on mascot click
+                  runEasterEgg();
                 }}
               />
             </div>
@@ -278,7 +276,7 @@ export default function PetrulCompanion({
             className="petrulBubble"
             onClick={(e) => {
               e.stopPropagation();
-              hide(); // ✅ bubble click = dismiss
+              hide();
             }}
           >
             <div className="petrulBubbleTitle">Petrul Companion</div>
