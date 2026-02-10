@@ -54,11 +54,11 @@ a:hover{ text-decoration:underline; }
   background-size:cover;
   background-repeat:no-repeat;
 }
-.bgArt.theme1{ background-image:url("/assets/bg1.Webp"); }
-.bgArt.theme2{ background-image:url("/assets/bg2.Webp"); }
-.bgArt.theme3{ background-image:url("/assets/bg3.Webp"); }
-.bgArt.theme4{ background-image:url("/assets/bg4.Webp"); }
-.bgArt.theme5{ background-image:url("/assets/bg5.Webp"); }
+.bgArt.theme1{ background-image:url("/assets/bg1.webp"); }
+.bgArt.theme2{ background-image:url("/assets/bg2.webp"); }
+.bgArt.theme3{ background-image:url("/assets/bg3.webp"); }
+.bgArt.theme4{ background-image:url("/assets/bg4.webp"); }
+.bgArt.theme5{ background-image:url("/assets/bg5.webp"); }
 
 /* Animated mystic layers (kept light so image stays visible) */
 .bgArt::before,
@@ -4360,5 +4360,6 @@ body.paused *::after {
   display: none !important;
   animation: none !important;
 }
+
 
 

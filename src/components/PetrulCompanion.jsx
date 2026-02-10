@@ -7,7 +7,7 @@ import {
 } from "../data/petrulCompanionMessages";
 
 export default function PetrulCompanion({
-  src = "/assets/mascot2.png",
+  src = "/assets/mascot2.webp",
   anchor = "bottom", // "bottom" | "middle"
   minDelayMs = 18000,
   maxDelayMs = 45000,
@@ -113,7 +113,9 @@ export default function PetrulCompanion({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  const posStyle = anchor === "middle" ? { top: "30%" } : { bottom: "110px" };
+  const posStyle = anchor === "middle"
+  ? { top: "30%" }
+  : { bottom: "28px", left: "0px" };  // 🔥 tam künc
 
   const canEgg = () => {
     const last = Number(localStorage.getItem(EGG_LAST_TS) || "0");
@@ -151,34 +153,37 @@ export default function PetrulCompanion({
   return (
     <>
       <style>{`
-        .petrulCompanionWrap{
-          position: fixed;
-          left: 0;
-          z-index: 80;
-          pointer-events: none;
-        }
-        .petrulCompanion{
-          display: flex;
-          align-items: flex-end;
-          gap: 10px;
-          padding-left: 10px;
-          transition: transform 320ms ease, opacity 320ms ease;
-          opacity: ${open ? 1 : 0};
-          transform: ${open ? "translateX(0)" : "translateX(-70%)"};
-          pointer-events: none;
-        }
+     .petrulCompanionWrap{
+  position: fixed;
+  left: 0;
+  z-index: 80;
+  pointer-events: none;
+  transform: translateX(0);   /* 🔥 VACİB */
+}
+       .petrulCompanion{
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;            /* 🔥 bubble daha yaxın olsun */
+  padding-left: 0px;
+  transition: transform 320ms ease, opacity 320ms ease;
+  opacity: ${open ? 1 : 0};
+  transform: ${open ? "translateX(0)" : "translateX(-100%)"}; /* 🔥 TAM divardan çıxsın */
+  pointer-events: none;
+}
 
         .petrulMascotBox{
           position: relative;
           pointer-events: auto;
+           margin-left: -37px; 
         }
 
         .petrulMascot{
-          width: 112px;
+          width: 130px;
           height: auto;
           filter: drop-shadow(0 18px 28px rgba(0,0,0,.55));
           cursor: pointer;
           user-select: none;
+          display: block;
         }
 
         .sparkleRing{
@@ -213,6 +218,8 @@ export default function PetrulCompanion({
         .petrulBubble{
           max-width: 290px;
           padding: 10px 12px;
+           margin-left: -15px;      /* 🔥 maskota yapışsın */
+  transform: translateX(-2px); /* 🔥 vizual yaxınlaşma */
           border-radius: 14px;
           border: 1px solid rgba(255,255,255,0.16);
           background: rgba(10,10,12,0.82);

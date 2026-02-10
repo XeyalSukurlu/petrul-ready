@@ -205,7 +205,7 @@ export default function App() {
             onOpenDMR={() => setDmrOpen(true)}
           />
 
-          <PetrulCompanion anchor="middle" src="/assets/mascot2.png" forceShowNow={false} />
+          <PetrulCompanion anchor="middle" src="/assets/mascot2.webp" forceShowNow={false} />
 
           <BreathRitualOverlay onComplete={handleBreathComplete} manualToken={dmrToken} />
 
