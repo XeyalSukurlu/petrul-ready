@@ -26,13 +26,9 @@ export default function TopMusicPopover({ theme }) {
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
-
   const [vol, setVol] = useState(0.8);
-
-  // idle | loading | ready | error
   const [status, setStatus] = useState("idle");
   const [err, setErr] = useState("");
-
   const [dur, setDur] = useState(0);
   const [pos, setPos] = useState(0);
 
@@ -54,7 +50,6 @@ export default function TopMusicPopover({ theme }) {
     setDur(0);
     setPos(0);
 
-    // Hard reset (helps Safari/Chrome caching edge cases)
     try {
       a.pause();
       a.currentTime = 0;
@@ -64,20 +59,16 @@ export default function TopMusicPopover({ theme }) {
     a.load();
   };
 
-  // initial load
   useEffect(() => {
     setAudioSrc(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // volume sync
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
     a.volume = clamp01(vol);
   }, [vol]);
 
-  // when track changes
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -91,10 +82,8 @@ export default function TopMusicPopover({ theme }) {
         setPlaying(false);
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx]);
 
-  // audio events + progress loop
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -104,23 +93,12 @@ export default function TopMusicPopover({ theme }) {
       rafRef.current = requestAnimationFrame(tick);
     };
 
-    const onLoadStart = () => setStatus("loading");
-
-    const onLoadedMeta = () => setDur(a.duration || 0);
-
     const onCanPlay = () => {
       setStatus("ready");
       setDur(a.duration || 0);
     };
 
     const onEnded = () => setIdx((v) => (v + 1) % tracks.length);
-
-    const onError = () => {
-      setStatus("error");
-      setPlaying(false);
-      const src = a.currentSrc || a.src || "";
-      setErr(`Audio load failed: ${src}`);
-    };
 
     const onPlay = () => {
       setPlaying(true);
@@ -133,91 +111,19 @@ export default function TopMusicPopover({ theme }) {
       cancelAnimationFrame(rafRef.current);
     };
 
-    a.addEventListener("loadstart", onLoadStart);
-    a.addEventListener("loadedmetadata", onLoadedMeta);
     a.addEventListener("canplay", onCanPlay);
     a.addEventListener("ended", onEnded);
-    a.addEventListener("error", onError);
     a.addEventListener("play", onPlay);
     a.addEventListener("pause", onPause);
 
     return () => {
       cancelAnimationFrame(rafRef.current);
-      a.removeEventListener("loadstart", onLoadStart);
-      a.removeEventListener("loadedmetadata", onLoadedMeta);
       a.removeEventListener("canplay", onCanPlay);
       a.removeEventListener("ended", onEnded);
-      a.removeEventListener("error", onError);
       a.removeEventListener("play", onPlay);
       a.removeEventListener("pause", onPause);
     };
   }, [tracks.length]);
-
-  // close only on ESC
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  // global pointerup to stop drag
-  useEffect(() => {
-    const onUp = () => {
-      draggingSeekRef.current = false;
-      draggingVolRef.current = false;
-    };
-    window.addEventListener("pointerup", onUp);
-    return () => window.removeEventListener("pointerup", onUp);
-  }, []);
-
-  const safePlay = async () => {
-    const a = audioRef.current;
-    if (!a) return;
-
-    try {
-      setErr("");
-      setStatus("loading");
-      await a.play();
-    } catch {
-      setStatus("error");
-      setErr("Playback blocked by browser policy. Click Play again.");
-      setPlaying(false);
-    }
-  };
-
-  const togglePlay = async (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
-
-    const a = audioRef.current;
-    if (!a) return;
-
-    if (status === "error") {
-      setAudioSrc(idx);
-    }
-
-    if (!playing) {
-      await safePlay();
-    } else {
-      a.pause();
-    }
-  };
-
-  const next = (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
-    setIdx((v) => (v + 1) % tracks.length);
-  };
-
-  const prev = (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
-    setIdx((v) => (v - 1 + tracks.length) % tracks.length);
-  };
-
-  const progress = dur > 0 ? clamp01(pos / dur) : 0;
-   const activeTrack = tracks[idx];
 
   const setSeekFromPointer = (e) => {
     const a = audioRef.current;
@@ -235,6 +141,43 @@ export default function TopMusicPopover({ theme }) {
     const rect = e.currentTarget.getBoundingClientRect();
     const p = clamp01((e.clientX - rect.left) / rect.width);
     setVol(p);
+  };
+
+  const progress = dur > 0 ? clamp01(pos / dur) : 0;
+  const activeTrack = tracks[idx];
+
+  const togglePlay = async (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+
+    const a = audioRef.current;
+    if (!a) return;
+
+    if (!playing) {
+      try {
+        setErr("");
+        setStatus("loading");
+        await a.play();
+      } catch {
+        setStatus("error");
+        setErr("Playback blocked. Click Play again.");
+        setPlaying(false);
+      }
+    } else {
+      a.pause();
+    }
+  };
+
+  const next = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    setIdx((v) => (v + 1) % tracks.length);
+  };
+
+  const prev = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    setIdx((v) => (v - 1 + tracks.length) % tracks.length);
   };
 
   return (
@@ -271,14 +214,11 @@ export default function TopMusicPopover({ theme }) {
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="mpHead">
                 <div className="mpTitle">PETRUL RADIO</div>
                 <button
                   type="button"
                   className="mpClose"
-                  aria-label="Close"
-                  title="Close"
                   onPointerDown={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -288,9 +228,6 @@ export default function TopMusicPopover({ theme }) {
                   ✕
                 </button>
               </div>
-
-            
-
 
               <div className="mpTrackLine">
                 <div className="mpTrackName">{tracks[idx].name}</div>
@@ -302,7 +239,6 @@ export default function TopMusicPopover({ theme }) {
                 </div>
               </div>
 
-              {/* Progress + time */}
               <div
                 className="mpTimeRow"
                 style={{
@@ -317,104 +253,118 @@ export default function TopMusicPopover({ theme }) {
                 <span>{dur ? formatTime(dur) : "—:—"}</span>
               </div>
 
-              {/* Progress (click+drag) */}
-              <div
-                className="mpProgress"
-                role="slider"
-                aria-label="Progress"
-                aria-valuemin={0}
-                aria-valuemax={dur || 0}
-                aria-valuenow={pos || 0}
-                tabIndex={0}
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  draggingSeekRef.current = true;
-                  setSeekFromPointer(e);
-                }}
-                onPointerMove={(e) => {
-                  if (!draggingSeekRef.current) return;
-                  setSeekFromPointer(e);
-                }}
-              >
-                <div className="mpProgressBg" />
-                <motion.div
-                  className="mpProgressFill"
-                  animate={{ width: `${Math.round(progress * 100)}%` }}
-                  transition={{ type: "spring", stiffness: 260, damping: 24 }}
-                  style={{ boxShadow: `0 0 18px ${theme?.glow || "rgba(255,255,255,0.2)"}` }}
-                />
-                <motion.div
-                  className="mpProgressOrb"
-                  animate={{ left: `${Math.round(progress * 100)}%`, scale: playing ? 1.05 : 1 }}
-                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                  style={{ boxShadow: `0 0 22px ${theme?.glow || "rgba(255,255,255,0.2)"}` }}
-                />
-              </div>
+              {/* PROGRESS (ARTIQ ORB YOXDUR) */}
+           <div
+  className="mpProgress"
+  onPointerDown={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-              {/* Controls */}
+    // IMPORTANT: drag yalnız klikdən sonra başlasın
+    draggingSeekRef.current = true;
+
+    // Pointer capture -> pointer move/up həmişə bizə gələcək
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+
+    setSeekFromPointer(e);
+  }}
+  onPointerMove={(e) => {
+    // Klik etməyibsə: heç nə etmə (hover seek STOP)
+    if (!draggingSeekRef.current) return;
+    setSeekFromPointer(e);
+  }}
+  onPointerUp={(e) => {
+    draggingSeekRef.current = false;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  }}
+  onPointerCancel={(e) => {
+    draggingSeekRef.current = false;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  }}
+  onPointerLeave={() => {
+    // əlavə safety: mouse çıxanda drag bitsin
+    draggingSeekRef.current = false;
+  }}
+>
+  <div className="mpProgressBg" />
+  <motion.div
+    className="mpProgressFill"
+    animate={{ width: `${Math.round(progress * 100)}%` }}
+    transition={{ type: "spring", stiffness: 260, damping: 24 }}
+    style={{
+      boxShadow: `0 0 18px ${theme?.glow || "rgba(255,255,255,0.2)"}`,
+    }}
+  />
+</div>
+
               <div className="mpControls">
-                <button type="button" className="mpBtn" onPointerDown={prev} title="Previous">
+                <button className="mpBtn" onPointerDown={prev}>
                   ◀
                 </button>
 
                 <button
-                  type="button"
                   className={`mpPlay ${playing ? "on" : ""}`}
                   onPointerDown={togglePlay}
-                  title="Play / Pause"
                 >
-                  <span className="mpPlayGlyph">{playing ? "❚❚" : "▶"}</span>
-                  <span className="mpPlayAura" />
+                  {playing ? "❚❚" : "▶"}
                 </button>
 
-                <button type="button" className="mpBtn" onPointerDown={next} title="Next">
+                <button className="mpBtn" onPointerDown={next}>
                   ▶
                 </button>
               </div>
 
-     <a
+              <a
                 className="mpDownloadBtn"
                 href={activeTrack.src}
-                download={`${activeTrack.name.toLowerCase().replace(/\s+/g, "-")}.mp3`}
+                download={`${activeTrack.name
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")}.mp3`}
                 target="_blank"
                 rel="noreferrer"
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                ⬇  Download
+                ⬇ Download
               </a>
 
-              {/* Volume */}
               <div className="mpVol">
                 <div className="mpVolLabel">VOLUME</div>
 
-                <div
-                  className="mpVolTrack"
-                  role="slider"
-                  aria-label="Volume"
-                  aria-valuemin={0}
-                  aria-valuemax={1}
-                  aria-valuenow={vol}
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    draggingVolRef.current = true;
-                    setVolFromPointer(e);
-                  }}
-                  onPointerMove={(e) => {
-                    if (!draggingVolRef.current) return;
-                    setVolFromPointer(e);
-                  }}
-                >
-                  <motion.div
-                    className="mpVolFill"
-                    animate={{ width: `${Math.round(clamp01(vol) * 100)}%` }}
-                    transition={{ type: "spring", stiffness: 260, damping: 22 }}
-                    style={{ boxShadow: `0 0 18px ${theme?.glow || "rgba(255,255,255,0.2)"}` }}
-                  />
-                </div>
+               <div
+  className="mpVolTrack"
+  onPointerDown={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    draggingVolRef.current = true;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setVolFromPointer(e);
+  }}
+  onPointerMove={(e) => {
+    if (!draggingVolRef.current) return;
+    setVolFromPointer(e);
+  }}
+  onPointerUp={(e) => {
+    draggingVolRef.current = false;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  }}
+  onPointerCancel={(e) => {
+    draggingVolRef.current = false;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  }}
+  onPointerLeave={() => {
+    draggingVolRef.current = false;
+  }}
+>
+  <motion.div
+    className="mpVolFill"
+    animate={{ width: `${Math.round(Math.max(0, Math.min(1, vol)) * 100)}%` }}
+    transition={{ type: "spring", stiffness: 260, damping: 22 }}
+    style={{
+      boxShadow: `0 0 18px ${theme?.glow || "rgba(255,255,255,0.2)"}`,
+    }}
+  />
+</div>
 
-                {/* Fallback range */}
                 <input
                   className="mpVolInput"
                   type="range"
