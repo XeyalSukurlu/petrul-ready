@@ -19,14 +19,13 @@ export default function TopMusicPopover({ theme }) {
   );
 
   const audioRef = useRef(null);
-  const rafRef = useRef(0);
+
   const draggingSeekRef = useRef(false);
   const draggingVolRef = useRef(false);
 
-  // PERF refs
-  const lastUiUpdateRef = useRef(0);
-  const isPageVisibleRef = useRef(true);
   const openRef = useRef(false);
+  const isPageVisibleRef = useRef(true);
+  const lastUiUpdateRef = useRef(0);
 
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
@@ -39,6 +38,13 @@ export default function TopMusicPopover({ theme }) {
 
   useEffect(() => {
     openRef.current = open;
+    // Popover açılanda UI-ni dərhal sync elə (rAF yox)
+    const a = audioRef.current;
+    if (open && a) {
+      setDur(a.duration || dur || 0);
+      setPos(a.currentTime || pos || 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const clamp01 = (n) => Math.max(0, Math.min(1, n));
@@ -68,24 +74,26 @@ export default function TopMusicPopover({ theme }) {
     a.load();
   };
 
+  // Init
   useEffect(() => {
     setAudioSrc(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Volume apply
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
     a.volume = clamp01(vol);
   }, [vol]);
 
+  // Track change
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
 
     setAudioSrc(idx);
 
-    // idx dəyişəndə playing true isə əvvəlki davranış saxlanır
     if (playing) {
       a.play().catch(() => {
         setStatus("error");
@@ -96,122 +104,66 @@ export default function TopMusicPopover({ theme }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx]);
 
-  // Track tab visibility to stop rAF work while hidden
+  // Visibility gate (no rAF, just gates updates)
   useEffect(() => {
     const onVis = () => {
       isPageVisibleRef.current = !document.hidden;
-      if (document.hidden) {
-        cancelAnimationFrame(rafRef.current);
-      } else {
-        // resume only if needed
-        const a = audioRef.current;
-        if (a && !a.paused && openRef.current) {
-          cancelAnimationFrame(rafRef.current);
-          rafRef.current = requestAnimationFrame(() => {});
-          rafRef.current = requestAnimationFrame(function tick(t) {
-            const aa = audioRef.current;
-            if (!aa) return;
-
-            // only update if popover open + page visible + playing
-            if (!openRef.current || !isPageVisibleRef.current || aa.paused) {
-              return;
-            }
-
-            // 10fps UI update
-            if (!draggingSeekRef.current && t - lastUiUpdateRef.current >= 100) {
-              lastUiUpdateRef.current = t;
-              setPos(aa.currentTime || 0);
-            }
-
-            rafRef.current = requestAnimationFrame(tick);
-          });
-        }
-      }
     };
-
     onVis();
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
 
+  // Audio events (timeupdate is cheap & stable)
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
 
-    const tick = (t) => {
-      const aa = audioRef.current;
-      if (!aa) return;
+    const uiUpdateMaybe = () => {
+      // UI update yalnız popover açıq + visible + drag yox ikən
+      if (!openRef.current || !isPageVisibleRef.current) return;
+      if (draggingSeekRef.current) return;
 
-      // gate: only run while popover open + page visible + playing
-      if (!openRef.current || !isPageVisibleRef.current || aa.paused) return;
+      // throttle (təxminən 10fps max)
+      const t = performance.now();
+      if (t - lastUiUpdateRef.current < 100) return;
+      lastUiUpdateRef.current = t;
 
-      // 10fps UI update (100ms)
-      if (!draggingSeekRef.current && t - lastUiUpdateRef.current >= 100) {
-        lastUiUpdateRef.current = t;
-        setPos(aa.currentTime || 0);
-      }
+      setPos(a.currentTime || 0);
+      if (!dur && a.duration) setDur(a.duration || 0);
+    };
 
-      rafRef.current = requestAnimationFrame(tick);
+    const onLoadedMeta = () => {
+      setDur(a.duration || 0);
+      setStatus("ready");
     };
 
     const onCanPlay = () => {
-      setStatus("ready");
       setDur(a.duration || 0);
+      setStatus("ready");
     };
 
     const onEnded = () => setIdx((v) => (v + 1) % tracks.length);
 
-    const onPlay = () => {
-      setPlaying(true);
-      cancelAnimationFrame(rafRef.current);
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
 
-      // start only if open + visible
-      if (openRef.current && isPageVisibleRef.current) {
-        rafRef.current = requestAnimationFrame(tick);
-      }
-    };
-
-    const onPause = () => {
-      setPlaying(false);
-      cancelAnimationFrame(rafRef.current);
-    };
-
+    a.addEventListener("loadedmetadata", onLoadedMeta);
     a.addEventListener("canplay", onCanPlay);
+    a.addEventListener("timeupdate", uiUpdateMaybe);
     a.addEventListener("ended", onEnded);
     a.addEventListener("play", onPlay);
     a.addEventListener("pause", onPause);
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
+      a.removeEventListener("loadedmetadata", onLoadedMeta);
       a.removeEventListener("canplay", onCanPlay);
+      a.removeEventListener("timeupdate", uiUpdateMaybe);
       a.removeEventListener("ended", onEnded);
       a.removeEventListener("play", onPlay);
       a.removeEventListener("pause", onPause);
     };
-  }, [tracks.length]);
-
-  // If popover closes, stop UI loop (audio can still play)
-  useEffect(() => {
-    if (!open) {
-      cancelAnimationFrame(rafRef.current);
-    } else {
-      const a = audioRef.current;
-      if (a && !a.paused && isPageVisibleRef.current) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = requestAnimationFrame(function tick(t) {
-          const aa = audioRef.current;
-          if (!aa) return;
-          if (!openRef.current || !isPageVisibleRef.current || aa.paused) return;
-
-          if (!draggingSeekRef.current && t - lastUiUpdateRef.current >= 100) {
-            lastUiUpdateRef.current = t;
-            setPos(aa.currentTime || 0);
-          }
-          rafRef.current = requestAnimationFrame(tick);
-        });
-      }
-    }
-  }, [open]);
+  }, [tracks.length, dur]);
 
   const setSeekFromPointer = (e) => {
     const a = audioRef.current;
@@ -241,7 +193,7 @@ export default function TopMusicPopover({ theme }) {
     const a = audioRef.current;
     if (!a) return;
 
-    if (!playing) {
+    if (a.paused) {
       try {
         setErr("");
         setStatus("loading");
@@ -272,16 +224,18 @@ export default function TopMusicPopover({ theme }) {
     <div className="topPlayer" onPointerDown={(e) => e.stopPropagation()}>
       <audio ref={audioRef} preload="auto" />
 
+      {/* INP üçün: toggle-ni click-ə keçiririk (pointerdown + preventDefault ağırlaşdıra bilər) */}
       <button
         type="button"
         className="iconBtn"
         aria-label="Music"
         title="Music"
-        onPointerDown={(e) => {
+        onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           setOpen((v) => !v);
         }}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         ♪
       </button>
@@ -307,11 +261,12 @@ export default function TopMusicPopover({ theme }) {
                 <button
                   type="button"
                   className="mpClose"
-                  onPointerDown={(e) => {
+                  onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     setOpen(false);
                   }}
+                  onPointerDown={(e) => e.stopPropagation()}
                 >
                   ✕
                 </button>
@@ -341,7 +296,7 @@ export default function TopMusicPopover({ theme }) {
                 <span>{dur ? formatTime(dur) : "—:—"}</span>
               </div>
 
-              {/* PROGRESS (ARTIQ ORB YOXDUR) */}
+              {/* PROGRESS (ORB yoxdur) — yalnız CLICK/DRAG ilə seek */}
               <div
                 className="mpProgress"
                 onPointerDown={(e) => {
@@ -350,7 +305,6 @@ export default function TopMusicPopover({ theme }) {
 
                   draggingSeekRef.current = true;
                   e.currentTarget.setPointerCapture?.(e.pointerId);
-
                   setSeekFromPointer(e);
                 }}
                 onPointerMove={(e) => {
@@ -365,9 +319,6 @@ export default function TopMusicPopover({ theme }) {
                   draggingSeekRef.current = false;
                   e.currentTarget.releasePointerCapture?.(e.pointerId);
                 }}
-                onPointerLeave={() => {
-                  draggingSeekRef.current = false;
-                }}
               >
                 <div className="mpProgressBg" />
                 <motion.div
@@ -375,24 +326,27 @@ export default function TopMusicPopover({ theme }) {
                   animate={{ width: `${Math.round(progress * 100)}%` }}
                   transition={{ type: "spring", stiffness: 260, damping: 24 }}
                   style={{
-                    boxShadow: `0 0 18px ${theme?.glow || "rgba(255,255,255,0.2)"}`,
+                    boxShadow: `0 0 18px ${
+                      theme?.glow || "rgba(255,255,255,0.2)"
+                    }`,
                   }}
                 />
               </div>
 
               <div className="mpControls">
-                <button className="mpBtn" onPointerDown={prev}>
+                <button className="mpBtn" onClick={prev} onPointerDown={(e) => e.stopPropagation()}>
                   ◀
                 </button>
 
                 <button
                   className={`mpPlay ${playing ? "on" : ""}`}
-                  onPointerDown={togglePlay}
+                  onClick={togglePlay}
+                  onPointerDown={(e) => e.stopPropagation()}
                 >
                   {playing ? "❚❚" : "▶"}
                 </button>
 
-                <button className="mpBtn" onPointerDown={next}>
+                <button className="mpBtn" onClick={next} onPointerDown={(e) => e.stopPropagation()}>
                   ▶
                 </button>
               </div>
@@ -403,6 +357,7 @@ export default function TopMusicPopover({ theme }) {
                 download={`${activeTrack.name.toLowerCase().replace(/\s+/g, "-")}.mp3`}
                 target="_blank"
                 rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
               >
                 ⬇ Download
@@ -411,40 +366,37 @@ export default function TopMusicPopover({ theme }) {
               <div className="mpVol">
                 <div className="mpVolLabel">VOLUME</div>
 
+                {/* Volume də click/drag-only + pointer capture */}
                 <div
                   className="mpVolTrack"
                   onPointerDown={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     draggingVolRef.current = true;
+                    e.currentTarget.setPointerCapture?.(e.pointerId);
                     setVolFromPointer(e);
                   }}
                   onPointerMove={(e) => {
                     if (!draggingVolRef.current) return;
                     setVolFromPointer(e);
                   }}
-                  onPointerUp={() => {
+                  onPointerUp={(e) => {
                     draggingVolRef.current = false;
+                    e.currentTarget.releasePointerCapture?.(e.pointerId);
                   }}
-                  onPointerCancel={() => {
+                  onPointerCancel={(e) => {
                     draggingVolRef.current = false;
-                  }}
-                  onPointerLeave={() => {
-                    draggingVolRef.current = false;
+                    e.currentTarget.releasePointerCapture?.(e.pointerId);
                   }}
                 >
                   <motion.div
                     className="mpVolFill"
-                    animate={{
-                      width: `${Math.round(clamp01(vol) * 100)}%`,
-                    }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 260,
-                      damping: 22,
-                    }}
+                    animate={{ width: `${Math.round(clamp01(vol) * 100)}%` }}
+                    transition={{ type: "spring", stiffness: 260, damping: 22 }}
                     style={{
-                      boxShadow: `0 0 18px ${theme?.glow || "rgba(255,255,255,0.2)"}`,
+                      boxShadow: `0 0 18px ${
+                        theme?.glow || "rgba(255,255,255,0.2)"
+                      }`,
                     }}
                   />
                 </div>
