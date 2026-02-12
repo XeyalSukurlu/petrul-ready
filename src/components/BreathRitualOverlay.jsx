@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // public/assets/mascot.png
-const mascotImg = "/assets/mascot.png";
+const mascotImg = "/assets/mascot.webp";
 
 export default function BreathRitualOverlay({ onComplete, manualToken }) {
   const [visible, setVisible] = useState(false);

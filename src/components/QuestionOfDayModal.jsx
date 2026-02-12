@@ -181,7 +181,7 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 12) {
 function downloadCanvasPNG(canvas, filename) {
   const link = document.createElement("a");
   link.download = filename;
-  link.href = canvas.toDataURL("image/png");
+  link.href = canvas.toDataURL("image/webp");
   link.click();
 }
 
@@ -210,7 +210,7 @@ function loadImage(src) {
   });
 }
 
-function canvasToBlob(canvas, type = "image/png", quality) {
+function canvasToBlob(canvas, type = "image/webp", quality) {
   return new Promise((resolve) => {
     canvas.toBlob((b) => resolve(b), type, quality);
   });
@@ -283,12 +283,12 @@ export default function QuestionOfDayModal({ open, onClose, question: questionPr
 
     const THEME =
       {
-        theme1: { a: "rgba(255,179,71,0.90)", b: "rgba(255,120,60,0.55)", bg: "/assets/bg1.jpg" },
-        theme2: { a: "rgba(90,220,255,0.92)", b: "rgba(210,120,255,0.58)", bg: "/assets/bg2.jpg" },
-        theme3: { a: "rgba(199,210,254,0.90)", b: "rgba(167,139,250,0.55)", bg: "/assets/bg3.jpg" },
-        theme4: { a: "rgba(255,140,80,0.90)", b: "rgba(255,60,60,0.55)", bg: "/assets/bg4.jpg" },
-        theme5: { a: "rgba(185,255,176,0.88)", b: "rgba(90,220,255,0.48)", bg: "/assets/bg5.jpg" },
-      }[theme] || { a: "rgba(90,220,255,0.92)", b: "rgba(210,120,255,0.58)", bg: "/assets/bg2.jpg" };
+        theme1: { a: "rgba(255,179,71,0.90)", b: "rgba(255,120,60,0.55)", bg: "/assets/bg1.webp" },
+        theme2: { a: "rgba(90,220,255,0.92)", b: "rgba(210,120,255,0.58)", bg: "/assets/bg2.webp" },
+        theme3: { a: "rgba(199,210,254,0.90)", b: "rgba(167,139,250,0.55)", bg: "/assets/bg3.webp" },
+        theme4: { a: "rgba(255,140,80,0.90)", b: "rgba(255,60,60,0.55)", bg: "/assets/bg4.webp" },
+        theme5: { a: "rgba(185,255,176,0.88)", b: "rgba(90,220,255,0.48)", bg: "/assets/bg5.webp" },
+      }[theme] || { a: "rgba(90,220,255,0.92)", b: "rgba(210,120,255,0.58)", bg: "/assets/bg2.webp" };
 
     let bgImg = null;
     let mascotImg = null;
@@ -297,14 +297,14 @@ export default function QuestionOfDayModal({ open, onClose, question: questionPr
       bgImg = await loadImage(THEME.bg);
     } catch {
       try {
-        bgImg = await loadImage("/assets/bg2.jpg");
+        bgImg = await loadImage("/assets/bg2.webp");
       } catch {
         bgImg = null;
       }
     }
 
     try {
-      mascotImg = await loadImage("/assets/mascot.png");
+      mascotImg = await loadImage("/assets/mascot.webp");
     } catch {
       mascotImg = null;
     }
@@ -512,16 +512,16 @@ export default function QuestionOfDayModal({ open, onClose, question: questionPr
     ctx.fillText("petrul.fun", W / 2, H - 80);
 
     const safeName = todayKey.replaceAll(":", "-");
-    const filename = `petrul-poster-${safeName}.png`;
+    const filename = `petrul-poster-${safeName}.webp`;
 
-    const blob = await canvasToBlob(canvas, "image/png");
+    const blob = await canvasToBlob(canvas, "image/webp");
     return { canvas, blob, filename };
   };
 
   const handleDownloadPoster = async () => {
     const { canvas, filename } = await renderPoster();
     if (!canvas) return;
-    downloadCanvasPNG(canvas, filename || "petrul-poster.png");
+    downloadCanvasPNG(canvas, filename || "petrul-poster.webp");
   };
 
   const handleSharePoster = async () => {
@@ -535,7 +535,7 @@ export default function QuestionOfDayModal({ open, onClose, question: questionPr
 
     try {
       if (blob) {
-        const file = new File([blob], filename || "petrul-poster.png", { type: "image/png" });
+        const file = new File([blob], filename || "petrul-poster.webp", { type: "image/webp" });
         if (navigator.canShare?.({ files: [file] }) && navigator.share) {
           await navigator.share({ title: "Petrul", text: shareText, files: [file] });
           return;
@@ -550,7 +550,7 @@ export default function QuestionOfDayModal({ open, onClose, question: questionPr
       // ignore
     }
 
-    downloadCanvasPNG(canvas, filename || "petrul-poster.png");
+    downloadCanvasPNG(canvas, filename || "petrul-poster.webp");
 
     try {
       const text = encodeURIComponent("Petrul — Message of the Day ✨");
