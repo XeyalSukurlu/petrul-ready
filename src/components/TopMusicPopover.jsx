@@ -14,6 +14,7 @@ export default function TopMusicPopover({ theme }) {
       { name: "Petrul Slow Lane Royalty", src: `${base}assets/track5.mp3` },
       { name: "Petrul No Brake Mode", src: `${base}assets/track6.mp3` },
       { name: "BOUNCE LIKE PETRUL", src: `${base}assets/track7.mp3` },
+      { name: "Petrul Coming 2", src: `${base}assets/track8.mp3` },
     ],
     [base]
   );
