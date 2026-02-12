@@ -1902,7 +1902,7 @@ button:hover, .btn:hover{
 
 /* Nav hizalama (səndə olan kimi saxladım) */
 .topbar .nav{
-  transform: translateX(-50px);
+  transform: translateX(center);
 }
 
 
@@ -4360,6 +4360,8 @@ body.paused *::after {
   display: none !important;
   animation: none !important;
 }
+
+
 
 
 
